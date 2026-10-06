@@ -4,57 +4,109 @@
 
 {% block content %}
 
-<section class="mb-8 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+<!-- ====================================================== -->
+<!-- CABEÇALHO -->
+<!-- ====================================================== -->
 
-    <div>
+<section class="relative overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-900/70 p-6 shadow-2xl shadow-black/30 sm:p-8">
 
-        <span class="text-xs font-black tracking-[.18em] text-barber-300">
-            ÁREA DO CLIENTE
-        </span>
+    <div class="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[#f4600d]/10 blur-3xl"></div>
+    <div class="pointer-events-none absolute -bottom-28 -left-20 h-64 w-64 rounded-full bg-[#3f6d87]/10 blur-3xl"></div>
 
-        <h1 class="mt-3 text-4xl font-black tracking-tight sm:text-5xl">
-            Olá, {{ current_user.name }}
-        </h1>
+    <div class="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
 
-        <p class="mt-3 text-zinc-500">
-            Seus próximos horários e histórico ficam organizados aqui.
-        </p>
+        <div>
+
+            <div class="mb-5 flex w-28 overflow-hidden rounded-full">
+                <span class="h-1.5 flex-1 bg-[#df2610]"></span>
+                <span class="h-1.5 flex-1 bg-[#f5f5f4]"></span>
+                <span class="h-1.5 flex-1 bg-[#3f6d87]"></span>
+                <span class="h-1.5 flex-1 bg-[#f4600d]"></span>
+            </div>
+
+            <span class="text-xs font-black uppercase tracking-[.18em] text-[#f58b46]">
+                ÁREA DO CLIENTE
+            </span>
+
+            <h1 class="mt-3 text-4xl font-black tracking-[-.035em] text-white sm:text-5xl">
+                Olá, {{ current_user.name }}
+            </h1>
+
+            <p class="mt-3 max-w-2xl text-sm leading-7 text-zinc-400 sm:text-base">
+                Acompanhe seu próximo atendimento e consulte seu histórico de cortes.
+            </p>
+
+            <div class="mt-5 inline-flex items-center gap-2 rounded-full border border-[#f4600d]/15 bg-[#f4600d]/5 px-3 py-2 text-xs font-black text-[#f58b46]">
+                <span class="h-2 w-2 rounded-full bg-[#f4600d]"></span>
+                Um agendamento ativo por cliente
+            </div>
+
+        </div>
+
+        <div class="flex flex-wrap gap-3">
+
+            {% if upcoming %}
+
+                <span class="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-emerald-400/20 bg-emerald-400/5 px-5 text-sm font-black text-emerald-300">
+                    <span class="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,.75)]"></span>
+                    Agendamento ativo
+                </span>
+
+            {% else %}
+
+                <a
+                    href="{{ url_for('booking.agenda') }}"
+                    class="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#f4600d] to-[#ef9e34] px-5 font-black text-black shadow-lg shadow-orange-950/30 transition hover:-translate-y-0.5 hover:brightness-110"
+                >
+                    <span class="text-lg">+</span>
+                    Novo agendamento
+                </a>
+
+            {% endif %}
+
+        </div>
 
     </div>
-
-    <a
-        href="{{ url_for('booking.agenda') }}"
-        class="inline-flex justify-center rounded-2xl bg-barber-400 px-5 py-3 font-black text-zinc-950 transition hover:bg-barber-300"
-    >
-        + Novo agendamento
-    </a>
 
 </section>
 
 
-<section class="mb-5 rounded-[2rem] border border-white/10 bg-zinc-900/70 p-5 shadow-xl sm:p-7">
 
-    <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+<!-- ====================================================== -->
+<!-- PRÓXIMO ATENDIMENTO -->
+<!-- ====================================================== -->
 
-        <div>
+<section class="mt-5 rounded-[2rem] border border-white/10 bg-zinc-900/70 p-5 shadow-xl sm:p-7">
 
-            <span class="text-xs font-black tracking-[.15em] text-zinc-500">
-                PRÓXIMOS
-            </span>
+    <div class="mb-6 flex flex-col gap-4 border-b border-white/5 pb-5 sm:flex-row sm:items-center sm:justify-between">
 
-            <h2 class="mt-1 text-2xl font-black">
-                Próximos horários
-            </h2>
+        <div class="flex items-center gap-3">
+
+           
+
+            <div>
+
+                <span class="text-[11px] font-black uppercase tracking-[.16em] text-zinc-600">
+                    PRÓXIMOS
+                </span>
+
+                <h2 class="text-2xl font-black text-white">
+                    Próximo atendimento
+                </h2>
+
+            </div>
 
         </div>
+
 
         {% if vapid_public_key %}
 
             <button
                 id="enablePush"
                 data-vapid="{{ vapid_public_key }}"
-                class="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold transition hover:bg-white/10"
+                class="inline-flex w-fit items-center gap-2 rounded-2xl border border-white/10 bg-white/[.04] px-4 py-2.5 text-sm font-black text-zinc-300 transition hover:bg-white/[.08] disabled:cursor-not-allowed disabled:opacity-50"
             >
+                <span>🔔</span>
                 Ativar notificações
             </button>
 
@@ -62,103 +114,160 @@
 
     </div>
 
-    <div class="space-y-3">
+
+    <div class="space-y-4">
 
         {% for a in upcoming %}
 
-            <article class="grid gap-4 rounded-2xl border border-white/10 bg-zinc-950/45 p-4 sm:grid-cols-[auto_1fr_auto] sm:items-center">
+            <article class="relative overflow-hidden rounded-3xl border border-white/10 bg-[#0d0d0f]/80 p-4 shadow-lg sm:p-5">
 
-                <div class="grid h-16 w-16 place-items-center content-center rounded-2xl bg-white/5">
+                <div class="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-[#f4600d] to-[#df2610]"></div>
 
-                    <strong class="text-2xl">
-                        {{ a.start_at.strftime("%d") }}
-                    </strong>
+                <div class="grid gap-5 sm:grid-cols-[88px_1fr_auto] sm:items-center">
 
-                    <span class="text-[.7rem] text-zinc-500">
-                        {{ a.start_at.strftime("%m/%Y") }}
-                    </span>
+                    <!-- DATA -->
+                    <div class="grid min-h-[88px] place-items-center content-center rounded-2xl border border-white/5 bg-white/[.035]">
 
-                </div>
+                        <strong class="text-3xl font-black leading-none text-white">
+                            {{ a.start_at.strftime("%d") }}
+                        </strong>
 
-                <div>
+                        <span class="mt-1 text-xs font-black uppercase tracking-wider text-[#f58b46]">
+                            {{ a.start_at.strftime("%m/%Y") }}
+                        </span>
 
-                    <h3 class="font-black">
-                        {{ a.service.name }}
-                    </h3>
+                    </div>
 
-                    <p class="mt-1 text-sm text-zinc-400">
-                        {{ a.professional.name }}
-                        ·
-                        {{ a.start_at.strftime("%H:%M") }}–{{ a.end_at.strftime("%H:%M") }}
-                    </p>
 
-                    {% if a.notes %}
-                        <p class="mt-2 text-sm text-zinc-500">
-                            {{ a.notes }}
-                        </p>
-                    {% endif %}
+                    <!-- DADOS -->
+                    <div>
 
-                </div>
+                        <div class="flex flex-wrap items-center gap-2">
 
-                <form
-                    method="post"
-                    action="{{ url_for('booking.cancel_appointment', appointment_id=a.id) }}"
-                    onsubmit="return confirm('Deseja realmente cancelar este agendamento?')"
-                >
+                            <h3 class="text-xl font-black text-white">
+                                {{ a.service.name }}
+                            </h3>
 
-                    <input
-                        type="hidden"
-                        name="csrf_token"
-                        value="{{ csrf_token() }}"
+                            <span class="rounded-full border border-emerald-400/15 bg-emerald-400/5 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-300">
+                                Confirmado
+                            </span>
+
+                        </div>
+
+                        <div class="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm font-bold text-zinc-400">
+
+                            <span class="inline-flex items-center gap-2">
+                                <span class="text-[#f58b46]">◷</span>
+                                {{ a.start_at.strftime("%H:%M") }}–{{ a.end_at.strftime("%H:%M") }}
+                            </span>
+
+                           
+
+                        </div>
+
+                        {% if a.notes %}
+                            <p class="mt-3 rounded-xl border border-white/5 bg-white/[.025] px-3 py-2 text-sm leading-6 text-zinc-500">
+                                {{ a.notes }}
+                            </p>
+                        {% endif %}
+
+                    </div>
+
+
+                    <!-- CANCELAR -->
+                    <form
+                        method="post"
+                        action="{{ url_for('booking.cancel_appointment', appointment_id=a.id) }}"
+                        onsubmit="return confirm('Deseja realmente cancelar este agendamento?')"
+                        class="sm:justify-self-end"
                     >
 
-                    <button
-                        type="submit"
-                        class="rounded-xl border border-rose-400/25 bg-rose-400/10 px-4 py-2 text-sm font-bold text-rose-200 transition hover:bg-rose-400/20"
-                    >
-                        Cancelar
-                    </button>
+                        <input
+                            type="hidden"
+                            name="csrf_token"
+                            value="{{ csrf_token() }}"
+                        >
 
-                </form>
+                        <button
+                            type="submit"
+                            class="w-full rounded-2xl border border-red-400/20 bg-red-400/5 px-4 py-2.5 text-sm font-black text-red-300 transition hover:border-red-400/30 hover:bg-red-400/10 sm:w-auto"
+                        >
+                            Cancelar
+                        </button>
+
+                    </form>
+
+                </div>
 
             </article>
 
         {% else %}
 
-            <div class="rounded-2xl border border-dashed border-white/10 p-6 text-zinc-500">
-                Você não possui nenhum horário futuro.
+            <div class="rounded-3xl border border-dashed border-white/10 bg-black/10 p-8 text-center">
+
+                <div class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#f4600d]/10 text-2xl text-[#f58b46]">
+                    ✂
+                </div>
+
+                <strong class="mt-4 block text-base font-black text-zinc-300">
+                    Nenhum horário agendado
+                </strong>
+
+                <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-zinc-600">
+                    Você não possui atendimento futuro. Escolha um serviço e reserve um dos horários disponíveis.
+                </p>
+
+                <a
+                    href="{{ url_for('booking.agenda') }}"
+                    class="mt-5 inline-flex min-h-11 items-center justify-center rounded-2xl bg-gradient-to-r from-[#f4600d] to-[#ef9e34] px-5 text-sm font-black text-black transition hover:brightness-110"
+                >
+                    Agendar agora
+                </a>
+
             </div>
 
         {% endfor %}
 
     </div>
+
 </section>
 
 
-<section class="rounded-[2rem] border border-white/10 bg-zinc-900/70 p-5 shadow-xl sm:p-7">
+<!-- ====================================================== -->
+<!-- HISTÓRICO -->
+<!-- ====================================================== -->
 
-    <div class="mb-5">
+<section class="mt-5 rounded-[2rem] border border-white/10 bg-zinc-900/70 p-5 shadow-xl sm:p-7">
 
-        <span class="text-xs font-black tracking-[.15em] text-zinc-500">
-            HISTÓRICO
-        </span>
+    <div class="mb-6 flex items-center gap-3 border-b border-white/5 pb-5">
 
-        <h2 class="mt-1 text-2xl font-black">
-            Seus atendimentos
-        </h2>
+       
+
+        <div>
+
+            <span class="text-[11px] font-black uppercase tracking-[.16em] text-zinc-600">
+                HISTÓRICO
+            </span>
+
+            <h2 class="text-2xl font-black text-white">
+                Seus atendimentos
+            </h2>
+
+        </div>
 
     </div>
 
-    <div class="overflow-x-auto">
 
-        <table class="w-full min-w-[720px] text-left text-sm">
+    <!-- DESKTOP -->
+    <div class="hidden overflow-x-auto md:block">
 
-            <thead class="text-xs uppercase tracking-wider text-zinc-500">
+        <table class="w-full min-w-[760px] text-left text-sm">
+
+            <thead class="text-[11px] font-black uppercase tracking-[.14em] text-zinc-600">
 
                 <tr class="border-b border-white/10">
                     <th class="px-3 py-3">Data</th>
                     <th class="px-3 py-3">Serviço</th>
-                    <th class="px-3 py-3">Profissional</th>
                     <th class="px-3 py-3">Status</th>
                 </tr>
 
@@ -168,37 +277,39 @@
 
                 {% for a in history %}
 
-                    <tr class="border-b border-white/5">
+                    <tr class="border-b border-white/5 transition hover:bg-white/[.025]">
 
-                        <td class="px-3 py-4">
-                            {{ a.start_at.strftime("%d/%m/%Y %H:%M") }}
+                        <td class="px-3 py-4 font-bold text-zinc-300">
+                            {{ a.start_at.strftime("%d/%m/%Y") }}
+                            <span class="ml-1 text-zinc-600">
+                                {{ a.start_at.strftime("%H:%M") }}
+                            </span>
                         </td>
 
-                        <td class="px-3 py-4 font-semibold">
+                        <td class="px-3 py-4 font-black text-white">
                             {{ a.service.name }}
-                        </td>
-
-                        <td class="px-3 py-4 text-zinc-400">
-                            {{ a.professional.name }}
                         </td>
 
                         <td class="px-3 py-4">
 
                             {% if a.status == "scheduled" %}
 
-                                <span class="rounded-full bg-emerald-400/10 px-2.5 py-1 text-xs font-bold text-emerald-300">
+                                <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/15 bg-emerald-400/5 px-2.5 py-1 text-xs font-black text-emerald-300">
+                                    <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
                                     Agendado
                                 </span>
 
                             {% elif a.status == "cancelled" %}
 
-                                <span class="rounded-full bg-rose-400/10 px-2.5 py-1 text-xs font-bold text-rose-300">
+                                <span class="inline-flex items-center gap-1.5 rounded-full border border-red-400/15 bg-red-400/5 px-2.5 py-1 text-xs font-black text-red-300">
+                                    <span class="h-1.5 w-1.5 rounded-full bg-red-400"></span>
                                     Cancelado
                                 </span>
 
                             {% else %}
 
-                                <span class="rounded-full bg-white/10 px-2.5 py-1 text-xs font-bold text-zinc-300">
+                                <span class="inline-flex items-center gap-1.5 rounded-full border border-sky-400/15 bg-sky-400/5 px-2.5 py-1 text-xs font-black text-sky-300">
+                                    <span class="h-1.5 w-1.5 rounded-full bg-sky-300"></span>
                                     Concluído
                                 </span>
 
@@ -211,7 +322,10 @@
                 {% else %}
 
                     <tr>
-                        <td colspan="4" class="px-3 py-7 text-center text-zinc-500">
+                        <td
+                            colspan="3"
+                            class="px-3 py-9 text-center text-sm font-bold text-zinc-600"
+                        >
                             Seu histórico ainda está vazio.
                         </td>
                     </tr>
@@ -223,6 +337,67 @@
         </table>
 
     </div>
+
+
+    <!-- MOBILE -->
+    <div class="space-y-3 md:hidden">
+
+        {% for a in history %}
+
+            <article class="rounded-2xl border border-white/10 bg-black/10 p-4">
+
+                <div class="flex items-start justify-between gap-3">
+
+                    <div>
+
+                        <span class="text-xs font-black text-[#f58b46]">
+                            {{ a.start_at.strftime("%d/%m/%Y") }}
+                        </span>
+
+                        <h3 class="mt-1 font-black text-white">
+                            {{ a.service.name }}
+                        </h3>
+
+                        <p class="mt-1 text-xs font-bold text-zinc-600">
+                            {{ a.start_at.strftime("%H:%M") }}
+                        </p>
+
+                    </div>
+
+                    {% if a.status == "scheduled" %}
+
+                        <span class="rounded-full bg-emerald-400/10 px-2.5 py-1 text-[10px] font-black text-emerald-300">
+                            Agendado
+                        </span>
+
+                    {% elif a.status == "cancelled" %}
+
+                        <span class="rounded-full bg-red-400/10 px-2.5 py-1 text-[10px] font-black text-red-300">
+                            Cancelado
+                        </span>
+
+                    {% else %}
+
+                        <span class="rounded-full bg-sky-400/10 px-2.5 py-1 text-[10px] font-black text-sky-300">
+                            Concluído
+                        </span>
+
+                    {% endif %}
+
+                </div>
+
+            </article>
+
+        {% else %}
+
+            <div class="rounded-2xl border border-dashed border-white/10 p-6 text-center text-sm font-bold text-zinc-600">
+                Seu histórico ainda está vazio.
+            </div>
+
+        {% endfor %}
+
+    </div>
+
 </section>
 
 {% endblock %}
@@ -235,12 +410,17 @@
 <script>
 document.addEventListener("DOMContentLoaded", () => {
 
-    const button = document.getElementById("enablePush");
+    const button =
+        document.getElementById("enablePush");
 
-    if (!button) return;
+    if (!button) {
+        return;
+    }
 
 
-    function urlBase64ToUint8Array(base64String) {
+    function urlBase64ToUint8Array(
+        base64String
+    ) {
 
         const padding =
             "=".repeat(
@@ -252,78 +432,171 @@ document.addEventListener("DOMContentLoaded", () => {
                 .replace(/-/g, "+")
                 .replace(/_/g, "/");
 
-        const rawData = atob(base64);
+        const rawData =
+            atob(base64);
 
         return Uint8Array.from(
             [...rawData].map(
-                character => character.charCodeAt(0)
+                character =>
+                    character.charCodeAt(0)
             )
         );
     }
 
 
-    button.addEventListener("click", async () => {
+    button.addEventListener(
+        "click",
+        async () => {
 
-        try {
+            try {
 
-            if (!("serviceWorker" in navigator)) {
-                throw new Error("Este navegador não suporta Service Worker.");
-            }
+                button.disabled = true;
 
-            const permission =
-                await Notification.requestPermission();
+                button.innerHTML =
+                    "<span>◷</span> Ativando...";
 
-            if (permission !== "granted") {
-                throw new Error("Permissão não concedida.");
-            }
 
-            const registration =
-                await navigator.serviceWorker.register(
-                    "/service-worker.js"
+                if (!(
+                    "serviceWorker"
+                    in navigator
+                )) {
+                    throw new Error(
+                        "Este navegador não suporta Service Worker."
+                    );
+                }
+
+
+                if (!(
+                    "Notification"
+                    in window
+                )) {
+                    throw new Error(
+                        "Este navegador não suporta notificações."
+                    );
+                }
+
+
+                const permission =
+                    await Notification
+                        .requestPermission();
+
+
+                if (
+                    permission
+                    !==
+                    "granted"
+                ) {
+                    throw new Error(
+                        "Permissão de notificações não concedida."
+                    );
+                }
+
+
+                const registration =
+                    await navigator
+                        .serviceWorker
+                        .register(
+                            "/service-worker.js"
+                        );
+
+
+                let subscription =
+                    await registration
+                        .pushManager
+                        .getSubscription();
+
+
+                if (!subscription) {
+
+                    subscription =
+                        await registration
+                            .pushManager
+                            .subscribe({
+                                userVisibleOnly: true,
+
+                                applicationServerKey:
+                                    urlBase64ToUint8Array(
+                                        button.dataset.vapid
+                                    )
+                            });
+
+                }
+
+
+                const response =
+                    await fetch(
+                        "/api/push/subscribe",
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json",
+
+                                "X-CSRF-Token":
+                                    document
+                                        .querySelector(
+                                            'meta[name="csrf-token"]'
+                                        )
+                                        .content
+                            },
+
+                            body:
+                                JSON.stringify(
+                                    subscription
+                                        .toJSON()
+                                )
+                        }
+                    );
+
+
+                if (!response.ok) {
+
+                    let message =
+                        "Falha ao salvar assinatura.";
+
+                    try {
+
+                        const data =
+                            await response.json();
+
+                        if (data.error) {
+                            message =
+                                data.error;
+                        }
+
+                    } catch (_) {}
+
+                    throw new Error(
+                        message
+                    );
+                }
+
+
+                button.innerHTML =
+                    "<span>✓</span> Notificações ativadas";
+
+                button.classList.add(
+                    "border-emerald-400/20",
+                    "bg-emerald-400/5",
+                    "text-emerald-300"
                 );
 
-            const subscription =
-                await registration.pushManager.subscribe({
-                    userVisibleOnly: true,
-                    applicationServerKey:
-                        urlBase64ToUint8Array(
-                            button.dataset.vapid
-                        )
-                });
+            } catch (error) {
 
-            const response =
-                await fetch("/api/push/subscribe", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-CSRF-Token":
-                            document.querySelector(
-                                'meta[name="csrf-token"]'
-                            ).content
-                    },
-                    body:
-                        JSON.stringify(
-                            subscription.toJSON()
-                        )
-                });
+                button.disabled = false;
 
-            if (!response.ok) {
-                throw new Error("Falha ao salvar assinatura.");
+                button.innerHTML =
+                    "<span>🔔</span> Ativar notificações";
+
+                alert(
+                    error.message
+                    ||
+                    "Não foi possível ativar as notificações."
+                );
             }
-
-            button.textContent =
-                "Notificações ativadas";
-
-            button.disabled = true;
-
-        } catch (error) {
-
-            alert(
-                error.message
-                || "Não foi possível ativar as notificações."
-            );
         }
-    });
+    );
 
 });
 </script>

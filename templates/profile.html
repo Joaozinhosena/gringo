@@ -4,27 +4,65 @@
 
 {% block content %}
 
-<section class="mb-8">
+<!-- ====================================================== -->
+<!-- CABEÇALHO -->
+<!-- ====================================================== -->
 
-    <span class="text-xs font-black tracking-[.18em] text-barber-300">
-        MINHA CONTA
-    </span>
+<section class="relative overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-900/70 p-6 shadow-2xl shadow-black/30 sm:p-8">
 
-    <h1 class="mt-3 text-4xl font-black tracking-tight sm:text-5xl">
-        Perfil
-    </h1>
+    <div class="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[#f4600d]/10 blur-3xl"></div>
+    <div class="pointer-events-none absolute -bottom-28 -left-20 h-64 w-64 rounded-full bg-[#3f6d87]/10 blur-3xl"></div>
 
-    <p class="mt-3 text-zinc-500">
-        Atualize seu nome e sua foto.
-    </p>
+    <div class="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+
+        <div>
+
+            <div class="mb-5 flex w-28 overflow-hidden rounded-full">
+                <span class="h-1.5 flex-1 bg-[#df2610]"></span>
+                <span class="h-1.5 flex-1 bg-[#f5f5f4]"></span>
+                <span class="h-1.5 flex-1 bg-[#3f6d87]"></span>
+                <span class="h-1.5 flex-1 bg-[#f4600d]"></span>
+            </div>
+
+            <span class="text-xs font-black uppercase tracking-[.18em] text-[#f58b46]">
+                MINHA CONTA
+            </span>
+
+            <h1 class="mt-3 text-4xl font-black tracking-[-.035em] text-white sm:text-5xl">
+                Meu perfil
+            </h1>
+
+            <p class="mt-3 max-w-2xl text-sm leading-7 text-zinc-400 sm:text-base">
+                Atualize seu nome e escolha a foto que aparecerá na sua conta.
+            </p>
+
+        </div>
+
+        <div class="hidden lg:block">
+
+            <div class="rounded-[1.7rem] border border-white/10 bg-black/20 p-2 shadow-2xl">
+                <img
+                    src="{{ url_for('static', filename='imagens/gringo-logo.jpg') }}"
+                    alt="Gringo Barber"
+                    class="h-32 w-32 rounded-[1.35rem] object-cover"
+                >
+            </div>
+
+        </div>
+
+    </div>
 
 </section>
 
 
+<!-- ====================================================== -->
+<!-- PERFIL -->
+<!-- ====================================================== -->
+
 <form
     method="post"
     enctype="multipart/form-data"
-    class="grid gap-8 rounded-[2rem] border border-white/10 bg-zinc-900/70 p-6 shadow-xl sm:grid-cols-[170px_1fr] sm:p-8"
+    class="mt-6 grid gap-6 lg:grid-cols-[320px_1fr]"
 >
 
     <input
@@ -33,77 +71,309 @@
         value="{{ csrf_token() }}"
     >
 
-    <div>
 
-        {% if current_user.avatar %}
+    <!-- ================================================== -->
+    <!-- FOTO -->
+    <!-- ================================================== -->
 
-            <img
-                src="{{ url_for('uploaded_file', filename=current_user.avatar) }}"
-                alt="Foto de perfil"
-                class="h-32 w-32 rounded-3xl border border-white/10 object-cover shadow-xl"
-            >
+    <aside class="rounded-[2rem] border border-white/10 bg-zinc-900/70 p-5 shadow-xl sm:p-6">
 
-        {% else %}
+        <div class="flex items-center gap-3">
 
-            <div class="grid h-32 w-32 place-items-center rounded-3xl bg-gradient-to-br from-barber-200 to-barber-500 text-4xl font-black text-zinc-950">
-                {{ current_user.name[:1] }}
+            <div class="grid h-11 w-11 place-items-center rounded-2xl  text-xl text-[#f58b46]">
+                
             </div>
 
-        {% endif %}
+            <div>
+                <span class="text-[11px] font-black uppercase tracking-[.16em] text-zinc-600">
+                    FOTO DE PERFIL
+                </span>
 
-    </div>
+                <h2 class="text-lg font-black text-white">
+                    Sua imagem
+                </h2>
+            </div>
+
+        </div>
 
 
-    <div class="max-w-2xl">
+        <div class="mt-6 flex justify-center">
 
-        <label class="block">
+            <div class="relative">
 
-            <span class="mb-2 block text-sm font-black text-zinc-300">
-                Nome
-            </span>
+                {% if current_user.avatar %}
 
-            <input
-                type="text"
-                name="name"
-                value="{{ current_user.name }}"
-                maxlength="120"
-                required
-                class="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3.5 text-white outline-none transition focus:border-barber-400/60 focus:ring-4 focus:ring-barber-400/10"
+                    <img
+                        id="avatarPreview"
+                        src="{{ url_for('uploaded_file', filename=current_user.avatar) }}"
+                        alt="Foto de perfil"
+                        class="h-44 w-44 rounded-[2rem] border border-white/10 object-cover shadow-2xl shadow-black/40"
+                    >
+
+                {% else %}
+
+                    <div
+                        id="avatarFallback"
+                        class="grid h-44 w-44 place-items-center rounded-[2rem] border border-[#f4600d]/20 bg-gradient-to-br from-[#f4600d] via-[#ef9e34] to-[#df2610] text-6xl font-black text-black shadow-2xl shadow-orange-950/20"
+                    >
+                        {{ current_user.name[:1]|upper }}
+                    </div>
+
+                    <img
+                        id="avatarPreview"
+                        src=""
+                        alt="Prévia da foto"
+                        class="hidden h-44 w-44 rounded-[2rem] border border-white/10 object-cover shadow-2xl shadow-black/40"
+                    >
+
+                {% endif %}
+
+
+            </div>
+
+        </div>
+
+
+        <div class="mt-7">
+
+            <label
+                for="avatarInput"
+                class="block cursor-pointer rounded-2xl border border-dashed border-white/10 bg-black/10 p-4 text-center transition hover:border-[#f4600d]/30 hover:bg-[#f4600d]/5"
             >
 
-        </label>
+                <span class="block text-sm font-black text-zinc-300">
+                    Escolher nova foto
+                </span>
 
+              
 
-        <label class="mt-5 block">
-
-            <span class="mb-2 block text-sm font-black text-zinc-300">
-                Foto de perfil
-            </span>
+            </label>
 
             <input
+                id="avatarInput"
                 type="file"
                 name="avatar"
                 accept="image/jpeg,image/png,image/webp"
-                class="block w-full rounded-2xl border border-white/10 bg-zinc-950/70 text-sm text-zinc-400 file:mr-4 file:border-0 file:bg-barber-400 file:px-4 file:py-3 file:font-black file:text-zinc-950 hover:file:bg-barber-300"
+                class="sr-only"
             >
 
-        </label>
+        </div>
 
 
-        <p class="mt-3 text-sm leading-6 text-zinc-500">
-            JPG, PNG ou WEBP. A foto será recortada e otimizada automaticamente.
-        </p>
+        <div class="mt-4 rounded-2xl border border-sky-400/10 bg-sky-400/5 p-4">
+
+            <div class="flex gap-3">
+
+                <span class="text-lg text-sky-300">
+                    ⓘ
+                </span>
+
+                <p class="text-xs leading-5 text-zinc-500">
+                    A imagem será recortada e otimizada automaticamente pelo sistema.
+                </p>
+
+            </div>
+
+        </div>
+
+    </aside>
 
 
-        <button
-            type="submit"
-            class="mt-6 rounded-2xl bg-barber-400 px-5 py-3 font-black text-zinc-950 transition hover:bg-barber-300"
-        >
-            Salvar alterações
-        </button>
+    <!-- ================================================== -->
+    <!-- DADOS DA CONTA -->
+    <!-- ================================================== -->
 
-    </div>
+    <section class="rounded-[2rem] border border-white/10 bg-zinc-900/70 p-5 shadow-xl sm:p-7">
+
+        <div class="flex items-center gap-3 border-b border-white/5 pb-5">
+
+          
+
+            <div>
+                <span class="text-[11px] font-black uppercase tracking-[.16em] text-zinc-600">
+                    DADOS DA CONTA
+                </span>
+
+                <h2 class="text-xl font-black text-white">
+                    Informações pessoais
+                </h2>
+            </div>
+
+        </div>
+
+
+        <div class="mt-6 max-w-2xl space-y-5">
+
+            <label class="block">
+
+                <span class="mb-2 block text-sm font-black text-zinc-300">
+                    Nome
+                </span>
+
+                <input
+                    type="text"
+                    name="name"
+                    value="{{ current_user.name }}"
+                    minlength="2"
+                    maxlength="120"
+                    autocomplete="name"
+                    required
+                    class="w-full rounded-2xl border border-white/10 bg-[#0d0d0f] px-4 py-3.5 text-white outline-none transition placeholder:text-zinc-700 focus:border-[#f4600d]/60 focus:ring-4 focus:ring-[#f4600d]/10"
+                >
+
+                <span class="mt-2 block text-xs leading-5 text-zinc-600">
+                    Esse nome será usado na sua área do cliente e nos seus agendamentos.
+                </span>
+
+            </label>
+
+
+            {% if current_user.email %}
+
+                <div>
+
+                    <span class="mb-2 block text-sm font-black text-zinc-300">
+                        E-mail
+                    </span>
+
+                    <div class="flex items-center gap-3 rounded-2xl border border-white/5 bg-black/15 px-4 py-3.5">
+
+                      
+
+                        <span class="min-w-0 flex-1 truncate text-sm font-bold text-zinc-400">
+                            {{ current_user.email }}
+                        </span>
+
+                        <span class="rounded-full border border-emerald-400/15 bg-emerald-400/5 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-300">
+                            Conta
+                        </span>
+
+                    </div>
+
+                    <span class="mt-2 block text-xs leading-5 text-zinc-600">
+                        O e-mail não é alterado nesta tela.
+                    </span>
+
+                </div>
+
+            {% endif %}
+
+
+
+            </div>
+
+
+            <div class="flex flex-col gap-3 border-t border-white/5 pt-5 sm:flex-row">
+
+                <button
+                    type="submit"
+                    class="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#f4600d] to-[#ef9e34] px-5 font-black text-black shadow-lg shadow-orange-950/20 transition hover:-translate-y-0.5 hover:brightness-110"
+                >
+                
+                    Salvar alterações
+                </button>
+
+                <a
+                    href="{{ url_for('booking.dashboard') }}"
+                    class="inline-flex min-h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[.04] px-5 font-black text-zinc-300 transition hover:bg-white/[.08]"
+                >
+                    Voltar para minha agenda
+                </a>
+
+            </div>
+
+        </div>
+
+    </section>
 
 </form>
+
+{% endblock %}
+
+
+{% block scripts %}
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+    const input =
+        document.getElementById("avatarInput");
+
+    const preview =
+        document.getElementById("avatarPreview");
+
+    const fallback =
+        document.getElementById("avatarFallback");
+
+
+    if (!input || !preview) {
+        return;
+    }
+
+
+    input.addEventListener("change", () => {
+
+        const file =
+            input.files?.[0];
+
+        if (!file) {
+            return;
+        }
+
+
+        const allowedTypes = [
+            "image/jpeg",
+            "image/png",
+            "image/webp"
+        ];
+
+
+        if (!allowedTypes.includes(file.type)) {
+
+            alert(
+                "Escolha uma imagem JPG, PNG ou WEBP."
+            );
+
+            input.value = "";
+            return;
+        }
+
+
+        const maxSize =
+            4 * 1024 * 1024;
+
+
+        if (file.size > maxSize) {
+
+            alert(
+                "A imagem deve ter no máximo 4 MB."
+            );
+
+            input.value = "";
+            return;
+        }
+
+
+        const url =
+            URL.createObjectURL(file);
+
+
+        preview.src = url;
+        preview.classList.remove("hidden");
+
+
+        if (fallback) {
+            fallback.classList.add("hidden");
+        }
+
+
+        preview.onload = () => {
+            URL.revokeObjectURL(url);
+        };
+
+    });
+
+});
+</script>
 
 {% endblock %}

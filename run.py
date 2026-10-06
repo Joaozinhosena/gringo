@@ -4,29 +4,71 @@ import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
-from flask import Flask, Response, send_from_directory
+from flask import (
+    Flask,
+    Response,
+    send_from_directory,
+)
 
 BASE_DIR = Path(__file__).resolve().parent
 TEMPLATE_DIR = BASE_DIR / "templates"
 STATIC_DIR = BASE_DIR / "static"
 INSTANCE_DIR = BASE_DIR / "instance"
 UPLOAD_DIR = INSTANCE_DIR / "uploads"
-DATABASE_FILE = INSTANCE_DIR / "barber_pro.db"
+DATABASE_FILE = (
+    INSTANCE_DIR
+    / "barber_pro.db"
+)
 
 if str(BASE_DIR) not in sys.path:
-    sys.path.insert(0, str(BASE_DIR))
+    sys.path.insert(
+        0,
+        str(BASE_DIR),
+    )
 
-load_dotenv(BASE_DIR / ".env")
+load_dotenv(
+    BASE_DIR / ".env"
+)
 
-from app.extensions import db, login_manager, socketio
+from app.extensions import (
+    db,
+    login_manager,
+    socketio,
+)
 from app.models import User
 from app.utils import get_csrf_token
 
-# Importa os modelos extras antes de db.create_all().
+# Importa modelos extras antes de db.create_all().
 from app.whatsapp_models import (
     WhatsAppNotification,
     WhatsAppPreference,
 )
+from app.email_models import (
+    PendingRegistration,
+)
+
+
+def _env_bool(
+    name,
+    default=False,
+):
+    raw = os.getenv(
+        name
+    )
+
+    if raw is None:
+        return default
+
+    return (
+        raw.strip().lower()
+        in {
+            "1",
+            "true",
+            "yes",
+            "sim",
+            "on",
+        }
+    )
 
 
 def create_app():
@@ -47,10 +89,16 @@ def create_app():
 
     application = Flask(
         __name__,
-        template_folder=str(TEMPLATE_DIR),
-        static_folder=str(STATIC_DIR),
+        template_folder=str(
+            TEMPLATE_DIR
+        ),
+        static_folder=str(
+            STATIC_DIR
+        ),
         static_url_path="/static",
-        instance_path=str(INSTANCE_DIR),
+        instance_path=str(
+            INSTANCE_DIR
+        ),
     )
 
     database_url = os.getenv(
@@ -60,7 +108,8 @@ def create_app():
 
     if not database_url:
         database_url = (
-            f"sqlite:///{DATABASE_FILE.resolve().as_posix()}"
+            f"sqlite:///"
+            f"{DATABASE_FILE.resolve().as_posix()}"
         )
 
     application.config.update(
@@ -68,12 +117,16 @@ def create_app():
             "SECRET_KEY",
             "dev-change-this-key",
         ),
+
         SQLALCHEMY_DATABASE_URI=
             database_url,
+
         SQLALCHEMY_TRACK_MODIFICATIONS=
             False,
+
         MAX_CONTENT_LENGTH=
             4 * 1024 * 1024,
+
         UPLOAD_FOLDER=
             str(UPLOAD_DIR),
 
@@ -134,16 +187,111 @@ def create_app():
             )
         ),
 
+        META_APP_SECRET=os.getenv(
+            "META_APP_SECRET",
+            "",
+        ).strip(),
+
+        WHATSAPP_WEBHOOK_VERIFY_TOKEN=os.getenv(
+            "WHATSAPP_WEBHOOK_VERIFY_TOKEN",
+            "",
+        ).strip(),
+
         WHATSAPP_REMINDER_CHECK_SECONDS=int(
             os.getenv(
                 "WHATSAPP_REMINDER_CHECK_SECONDS",
                 "60",
             )
         ),
+
+        # ====================================================
+        # E-MAIL / VERIFICAÇÃO DE CADASTRO
+        # ====================================================
+
+        MAIL_SERVER=os.getenv(
+            "MAIL_SERVER",
+            "smtp.gmail.com",
+        ).strip(),
+
+        MAIL_PORT=int(
+            os.getenv(
+                "MAIL_PORT",
+                "587",
+            )
+        ),
+
+        MAIL_USE_TLS=_env_bool(
+            "MAIL_USE_TLS",
+            True,
+        ),
+
+        MAIL_USE_SSL=_env_bool(
+            "MAIL_USE_SSL",
+            False,
+        ),
+
+        MAIL_USERNAME=os.getenv(
+            "MAIL_USERNAME",
+            "",
+        ).strip(),
+
+        MAIL_PASSWORD=os.getenv(
+            "MAIL_PASSWORD",
+            "",
+        ).strip(),
+
+        MAIL_FROM=os.getenv(
+            "MAIL_FROM",
+            os.getenv(
+                "MAIL_USERNAME",
+                "",
+            ),
+        ).strip(),
+
+        MAIL_FROM_NAME=os.getenv(
+            "MAIL_FROM_NAME",
+            os.getenv(
+                "APP_NAME",
+                "Gringo du Corte",
+            ),
+        ).strip(),
+
+        MAIL_CODE_EXPIRES_MINUTES=int(
+            os.getenv(
+                "MAIL_CODE_EXPIRES_MINUTES",
+                "10",
+            )
+        ),
+
+        MAIL_CODE_RESEND_SECONDS=int(
+            os.getenv(
+                "MAIL_CODE_RESEND_SECONDS",
+                "60",
+            )
+        ),
+
+        MAIL_CODE_MAX_ATTEMPTS=int(
+            os.getenv(
+                "MAIL_CODE_MAX_ATTEMPTS",
+                "5",
+            )
+        ),
+
+        MAIL_TIMEOUT_SECONDS=int(
+            os.getenv(
+                "MAIL_TIMEOUT_SECONDS",
+                "20",
+            )
+        ),
     )
 
-    db.init_app(application)
-    login_manager.init_app(application)
+    db.init_app(
+        application
+    )
+
+    login_manager.init_app(
+        application
+    )
 
     socketio.init_app(
         application,
@@ -153,10 +301,35 @@ def create_app():
         engineio_logger=False,
     )
 
-    from app.auth import bp as auth_bp
-    from app.booking import bp as booking_bp
-    from app.admin import bp as admin_bp
-    from app.whatsapp_routes import bp as whatsapp_bp
+
+
+
+
+    from app.admin_stats import bp as admin_stats_bp
+
+
+
+    from app.auth import (
+        bp as auth_bp,
+    )
+    from app.booking import (
+        bp as booking_bp,
+    )
+    from app.admin import (
+        bp as admin_bp,
+    )
+    from app.whatsapp_routes import (
+        bp as whatsapp_bp,
+    )
+    from app.whatsapp_webhook import (
+        bp as whatsapp_webhook_bp,
+    )
+
+    application.register_blueprint(admin_stats_bp)
+
+    application.register_blueprint(
+        whatsapp_webhook_bp
+    )
 
     application.register_blueprint(
         auth_bp
@@ -202,11 +375,14 @@ def create_app():
                 ],
         }
 
-    @application.template_filter("money")
+    @application.template_filter(
+        "money"
+    )
     def money(value_cents):
         try:
             cents = int(
-                value_cents or 0
+                value_cents
+                or 0
             )
         except (
             TypeError,
@@ -236,10 +412,12 @@ def create_app():
         "/service-worker.js"
     )
     def service_worker():
-        app_name_json = json.dumps(
-            application.config.get(
-                "APP_NAME",
-                "",
+        app_name_json = (
+            json.dumps(
+                application.config.get(
+                    "APP_NAME",
+                    "",
+                )
             )
         )
 

@@ -1,309 +1,170 @@
 <!doctype html>
-<html lang="pt-BR" class="h-full bg-zinc-950 scroll-smooth">
+<html lang="pt-BR" class="bg-[#09090a]">
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#09090a">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1, viewport-fit=cover"
+    <title>{% block title %}{{ app_name }}{% endblock %}</title>
+
+    <link
+        rel="icon"
+        type="image/jpeg"
+        href="{{ url_for('static', filename='imagens/gringo-logo.jpg') }}"
     >
 
-    <meta
-        name="theme-color"
-        content="#09090b"
-    >
-
-    <meta
-        name="color-scheme"
-        content="dark"
-    >
-
-    <meta
-        name="csrf-token"
-        content="{{ csrf_token() }}"
-    >
-
-    <meta
-        name="description"
-        content="{{ app_name }} — agendamento online de serviços de barbearia."
-    >
-
-    <title>
-        {% block title %}{{ app_name }}{% endblock %}
-    </title>
-
-
-    <!-- Tailwind CSS v4 via browser CDN -->
+    <!-- Tailwind v4 Browser CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 
-
-    <!-- Tema visual do projeto -->
-    <style type="text/tailwindcss">
-        @theme {
-            --color-barber-50: #fffaf0;
-            --color-barber-100: #fff0c2;
-            --color-barber-200: #ffe182;
-            --color-barber-300: #f7ca54;
-            --color-barber-400: #d9aa38;
-            --color-barber-500: #bd8b27;
-            --color-barber-600: #976b20;
-            --color-barber-700: #79521f;
-            --color-barber-800: #654321;
-            --color-barber-900: #54391f;
-
-            --font-sans:
-                Inter,
-                ui-sans-serif,
-                system-ui,
-                -apple-system,
-                BlinkMacSystemFont,
-                "Segoe UI",
-                sans-serif;
-
-            --shadow-glow:
-                0 20px 70px rgba(217, 170, 56, 0.14);
-        }
-    </style>
-
-
     <!-- Socket.IO -->
-    <script
-        src="https://cdn.socket.io/4.8.1/socket.io.min.js"
-        defer>
-    </script>
-
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 
     {% block head %}{% endblock %}
 </head>
 
+<body class="min-h-screen bg-[#09090a] text-zinc-100 antialiased selection:bg-[#f4600d] selection:text-black">
 
-{% set endpoint = request.endpoint or "" %}
+{% set endpoint = request.endpoint or '' %}
 
+<!-- EFEITOS DE FUNDO - SOMENTE TAILWIND -->
+<div class="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+    <div class="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-[#f4600d]/10 blur-3xl"></div>
+    <div class="absolute -right-32 top-32 h-96 w-96 rounded-full bg-[#3f6d87]/10 blur-3xl"></div>
+    <div class="absolute bottom-0 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-[#df2610]/5 blur-3xl"></div>
+</div>
 
-<body class="min-h-full overflow-x-hidden bg-zinc-950 font-sans text-zinc-100 antialiased selection:bg-barber-300 selection:text-zinc-950">
+<header class="sticky top-0 z-50 border-b border-white/10 bg-[#09090a]/90 backdrop-blur-xl">
 
-    <!-- Acessibilidade -->
-    <a
-        href="#conteudo-principal"
-        class="fixed left-4 top-4 z-[100] -translate-y-24 rounded-xl bg-barber-400 px-4 py-3 font-black text-zinc-950 shadow-xl transition focus:translate-y-0"
-    >
-        Ir para o conteúdo
-    </a>
+    <div class="mx-auto flex min-h-[76px] w-[min(1180px,calc(100%-1.25rem))] items-center justify-between gap-4">
 
+        <a
+            href="{{ url_for('booking.index') }}"
+            class="flex min-w-0 items-center gap-3"
+        >
+            <img
+                src="{{ url_for('static', filename='imagens/gringo-logo.jpg') }}"
+                alt="Gringo Barber"
+                class="h-12 w-12 shrink-0 rounded-2xl border border-[#f4600d]/40 object-cover shadow-[0_10px_30px_rgba(0,0,0,.35)]"
+            >
 
-    <!-- Fundo decorativo -->
-    <div
-        class="pointer-events-none fixed inset-0 -z-10 overflow-hidden"
-        aria-hidden="true"
-    >
-        <div class="absolute -left-32 -top-32 h-80 w-80 rounded-full bg-barber-400/10 blur-3xl"></div>
+            <div class="min-w-0">
+                <span class="block truncate text-base font-black tracking-tight text-white sm:text-lg">
+                    GRINGO BARBER
+                </span>
 
-        <div class="absolute right-[-8rem] top-[28%] h-96 w-96 rounded-full bg-amber-900/10 blur-3xl"></div>
+                <span class="hidden text-[10px] font-black uppercase tracking-[.18em] text-zinc-500 sm:block">
+                    style • indentidade • atitude
+                </span>
+            </div>
+        </a>
 
-        <div class="absolute bottom-[-10rem] left-[35%] h-96 w-96 rounded-full bg-zinc-800/30 blur-3xl"></div>
-    </div>
+        <nav class="hidden items-center gap-1 lg:flex">
 
-
-    <!-- Cabeçalho -->
-    <header class="sticky top-0 z-50 border-b border-white/10 bg-zinc-950/85 backdrop-blur-xl">
-
-        <div class="mx-auto flex min-h-16 w-[min(1180px,92vw)] items-center justify-between gap-4">
-
-            <!-- Marca -->
             <a
                 href="{{ url_for('booking.index') }}"
-                class="group flex min-w-0 items-center gap-3"
-                aria-label="{{ app_name }} — início"
+                class="rounded-xl px-4 py-2.5 text-sm font-black transition
+                {% if endpoint == 'booking.index' %}
+                    bg-gradient-to-r from-[#f4600d] to-[#ef9e34] text-black
+                {% else %}
+                    text-zinc-400 hover:bg-white/5 hover:text-white
+                {% endif %}"
             >
-                <span class="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-barber-200 to-barber-500 text-xl text-zinc-950 shadow-lg shadow-barber-500/10 transition duration-200 group-hover:rotate-6 group-focus-visible:rotate-6">
-                    <img src="https://lh3.googleusercontent.com/gps-cs-s/AHRPTWmrAID-vCA322HbuwklY5JbpDTKZ0uDa0jciBgIVtlBZ_7Sty0oHC77v586vxB-9kpp7WCUsqARKXGo82NUGxKCzC1kGKrjS6hjS315b9a0OkmNBH2lFoEIzfziT2rUPLFxgvb8wbW9a0g=s1360-w1360-h1020-rw" class="">
-                </span>
-
-                <span class="min-w-0">
-                    <span class="block truncate text-base font-black tracking-tight text-white sm:text-lg">
-                        {{ app_name }}
-                    </span>
-
-                    <span class="hidden text-[11px] font-semibold uppercase tracking-[.14em] text-zinc-600 sm:block">
-                        Gringo Barber
-                    </span>
-                </span>
+                Início
             </a>
 
-
-            <!-- Navegação desktop -->
-            <nav
-                class="hidden items-center gap-1 text-sm font-semibold text-zinc-300 md:flex"
-                aria-label="Navegação principal"
-            >
+            {% if current_user.is_authenticated %}
 
                 <a
-                    href="{{ url_for('booking.index') }}"
-                    class="
-                        rounded-xl px-3 py-2 transition
-                        hover:bg-white/5 hover:text-white
-                        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-barber-400/60
-                        {% if endpoint == 'booking.index' %}
-                            bg-white/5 text-white
-                        {% endif %}
-                    "
+                    href="{{ url_for('booking.agenda') }}"
+                    class="rounded-xl px-4 py-2.5 text-sm font-black transition
+                    {% if endpoint == 'booking.agenda' %}
+                        bg-gradient-to-r from-[#f4600d] to-[#ef9e34] text-black
+                    {% else %}
+                        text-zinc-400 hover:bg-white/5 hover:text-white
+                    {% endif %}"
                 >
-                    Início
+                    Agendar
                 </a>
 
+                <a
+                    href="{{ url_for('booking.dashboard') }}"
+                    class="rounded-xl px-4 py-2.5 text-sm font-black transition
+                    {% if endpoint == 'booking.dashboard' %}
+                        bg-gradient-to-r from-[#f4600d] to-[#ef9e34] text-black
+                    {% else %}
+                        text-zinc-400 hover:bg-white/5 hover:text-white
+                    {% endif %}"
+                >
+                    Meus horários
+                </a>
 
-                {% if current_user.is_authenticated %}
-
+                {% if current_user.is_admin %}
                     <a
-                        href="{{ url_for('booking.agenda') }}"
-                        class="
-                            rounded-xl px-3 py-2 transition
-                            hover:bg-white/5 hover:text-white
-                            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-barber-400/60
-                            {% if endpoint == 'booking.agenda' %}
-                                bg-barber-400/10 text-barber-300
-                            {% endif %}
-                        "
+                        href="{{ url_for('admin.dashboard') }}"
+                        class="rounded-xl px-4 py-2.5 text-sm font-black transition
+                        {% if endpoint.startswith('admin.') %}
+                            bg-gradient-to-r from-[#f4600d] to-[#ef9e34] text-black
+                        {% else %}
+                            text-zinc-400 hover:bg-white/5 hover:text-white
+                        {% endif %}"
                     >
-                        Agendar
+                        Administração
                     </a>
-
-
-                    <a
-                        href="{{ url_for('booking.dashboard') }}"
-                        class="
-                            rounded-xl px-3 py-2 transition
-                            hover:bg-white/5 hover:text-white
-                            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-barber-400/60
-                            {% if endpoint == 'booking.dashboard' %}
-                                bg-white/5 text-white
-                            {% endif %}
-                        "
-                    >
-                        Meus horários
-                    </a>
-
-
-                    {% if current_user.is_admin %}
-
-                        <a
-                            href="{{ url_for('admin.dashboard') }}"
-                            class="
-                                rounded-xl px-3 py-2 transition
-                                hover:bg-barber-400/10 hover:text-barber-300
-                                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-barber-400/60
-                                {% if endpoint.startswith('admin.') %}
-                                    bg-barber-400/10 text-barber-300
-                                {% endif %}
-                            "
-                        >
-                            Administração
-                        </a>
-
-                    {% endif %}
-
-
-                    <!-- Conta -->
-                    <div class="ml-2 flex items-center gap-2 border-l border-white/10 pl-3">
-
-                        <a
-                            href="{{ url_for('auth.profile') }}"
-                            class="
-                                flex items-center gap-2 rounded-xl px-2 py-1.5 transition
-                                hover:bg-white/5
-                                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-barber-400/60
-                            "
-                            aria-label="Abrir perfil"
-                        >
-
-                            {% if current_user.avatar %}
-
-                                <img
-                                    src="{{ url_for('uploaded_file', filename=current_user.avatar) }}"
-                                    alt=""
-                                    class="h-8 w-8 rounded-xl border border-white/10 object-cover"
-                                >
-
-                            {% else %}
-
-                                <span class="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-barber-200 to-barber-500 text-xs font-black text-zinc-950">
-                                    {{ current_user.name[:1]|upper }}
-                                </span>
-
-                            {% endif %}
-
-
-                            <span class="hidden max-w-28 truncate text-xs font-bold text-zinc-300 lg:block">
-                                {{ current_user.name }}
-                            </span>
-
-                        </a>
-
-
-                        <form
-                            method="post"
-                            action="{{ url_for('auth.logout') }}"
-                        >
-                            <input
-                                type="hidden"
-                                name="csrf_token"
-                                value="{{ csrf_token() }}"
-                            >
-
-                            <button
-                                type="submit"
-                                class="rounded-xl px-3 py-2 text-zinc-500 transition hover:bg-rose-400/10 hover:text-rose-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/50"
-                            >
-                                Sair
-                            </button>
-                        </form>
-
-                    </div>
-
-
-                {% else %}
-
-                    <a
-                        href="{{ url_for('auth.login') }}"
-                        class="
-                            rounded-xl px-3 py-2 transition
-                            hover:bg-white/5 hover:text-white
-                            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-barber-400/60
-                            {% if endpoint == 'auth.login' %}
-                                bg-white/5 text-white
-                            {% endif %}
-                        "
-                    >
-                        Entrar
-                    </a>
-
-
-                    <a
-                        href="{{ url_for('auth.register') }}"
-                        class="
-                            rounded-xl bg-barber-400 px-4 py-2 font-black text-zinc-950
-                            transition hover:-translate-y-0.5 hover:bg-barber-300
-                            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-barber-200
-                            {% if endpoint == 'auth.register' %}
-                                ring-2 ring-barber-200
-                            {% endif %}
-                        "
-                    >
-                        Criar conta
-                    </a>
-
                 {% endif %}
 
-            </nav>
+            {% else %}
 
+                <a
+                    href="{{ url_for('auth.login') }}"
+                    class="rounded-xl px-4 py-2.5 text-sm font-black text-zinc-400 transition hover:bg-white/5 hover:text-white"
+                >
+                    Entrar
+                </a>
 
-            <!-- Botão mobile -->
+                <a
+                    href="{{ url_for('auth.register') }}"
+                    class="rounded-xl bg-gradient-to-r from-[#f4600d] to-[#ef9e34] px-4 py-2.5 text-sm font-black text-black shadow-lg shadow-orange-950/20 transition hover:brightness-110"
+                >
+                    Criar conta
+                </a>
+
+            {% endif %}
+
+        </nav>
+
+        <div class="flex items-center gap-2">
+
+            {% if current_user.is_authenticated %}
+
+                <a
+                    href="{{ url_for('auth.profile') }}"
+                    class="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[.03] p-1.5 pr-3 transition hover:bg-white/[.06] sm:flex"
+                >
+                    {% if current_user.avatar %}
+                        <img
+                            src="{{ url_for('uploaded_file', filename=current_user.avatar) }}"
+                            alt=""
+                            class="h-9 w-9 rounded-full border border-[#f4600d]/40 object-cover"
+                        >
+                    {% else %}
+                        <span class="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-[#f4600d] to-[#ef9e34] text-sm font-black text-black">
+                            {{ current_user.name[:1]|upper }}
+                        </span>
+                    {% endif %}
+
+                    <span class="max-w-28 truncate text-xs font-black text-zinc-200">
+                        {{ current_user.name }}
+                    </span>
+                </a>
+
+            {% endif %}
+
             <button
                 id="mobileMenuButton"
                 type="button"
-                class="grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/5 text-lg text-zinc-200 transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-barber-400/60 md:hidden"
+                class="grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-white/[.04] text-xl text-white transition hover:bg-white/[.08] lg:hidden"
                 aria-label="Abrir menu"
-                aria-controls="mobileMenu"
                 aria-expanded="false"
             >
                 ☰
@@ -311,436 +172,164 @@
 
         </div>
 
+    </div>
 
-        <!-- Navegação mobile -->
-        <nav
-            id="mobileMenu"
-            class="hidden border-t border-white/10 bg-zinc-950/95 px-[4vw] py-4 backdrop-blur-xl md:hidden"
-            aria-label="Navegação mobile"
-        >
+    <!-- linha com cores da logo -->
+    <div class="h-[3px] bg-gradient-to-r from-transparent via-[#df2610] to-transparent">
+        <div class="mx-auto h-full w-2/3 bg-gradient-to-r from-[#3f6d87] via-[#f5f5f4] to-[#f4600d] opacity-80"></div>
+    </div>
 
-            <div class="mx-auto flex w-[min(1180px,100%)] flex-col gap-1 text-sm font-semibold text-zinc-300">
+    <div
+        id="mobileMenu"
+        class="mx-auto hidden w-[min(1180px,calc(100%-1.25rem))] border-t border-white/5 py-3 lg:hidden"
+    >
+        <div class="grid gap-1">
 
-                {% if current_user.is_authenticated %}
+            <a
+                href="{{ url_for('booking.index') }}"
+                class="rounded-xl px-4 py-3 text-sm font-black text-zinc-300 hover:bg-white/5"
+            >
+                Início
+            </a>
 
-                    <!-- Usuário -->
-                    <div class="mb-3 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[.03] p-3">
-
-                        {% if current_user.avatar %}
-
-                            <img
-                                src="{{ url_for('uploaded_file', filename=current_user.avatar) }}"
-                                alt=""
-                                class="h-11 w-11 rounded-2xl border border-white/10 object-cover"
-                            >
-
-                        {% else %}
-
-                            <span class="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-barber-200 to-barber-500 font-black text-zinc-950">
-                                {{ current_user.name[:1]|upper }}
-                            </span>
-
-                        {% endif %}
-
-
-                        <div class="min-w-0">
-                            <strong class="block truncate text-white">
-                                {{ current_user.name }}
-                            </strong>
-
-                            <span class="block truncate text-xs text-zinc-600">
-                                {{ current_user.email }}
-                            </span>
-                        </div>
-
-                    </div>
-
-                {% endif %}
-
+            {% if current_user.is_authenticated %}
 
                 <a
-                    href="{{ url_for('booking.index') }}"
-                    class="rounded-xl px-3 py-3 transition hover:bg-white/5 {% if endpoint == 'booking.index' %}bg-white/5 text-white{% endif %}"
+                    href="{{ url_for('booking.agenda') }}"
+                    class="rounded-xl px-4 py-3 text-sm font-black text-zinc-300 hover:bg-white/5"
                 >
-                    Início
+                    Agendar
                 </a>
 
+                <a
+                    href="{{ url_for('booking.dashboard') }}"
+                    class="rounded-xl px-4 py-3 text-sm font-black text-zinc-300 hover:bg-white/5"
+                >
+                    Meus horários
+                </a>
 
-                {% if current_user.is_authenticated %}
+                <a
+                    href="{{ url_for('auth.profile') }}"
+                    class="rounded-xl px-4 py-3 text-sm font-black text-zinc-300 hover:bg-white/5"
+                >
+                    Perfil
+                </a>
 
+                {% if current_user.is_admin %}
                     <a
-                        href="{{ url_for('booking.agenda') }}"
-                        class="rounded-xl px-3 py-3 transition hover:bg-white/5 {% if endpoint == 'booking.agenda' %}bg-barber-400/10 text-barber-300{% endif %}"
+                        href="{{ url_for('admin.dashboard') }}"
+                        class="rounded-xl px-4 py-3 text-sm font-black text-zinc-300 hover:bg-white/5"
                     >
-                        Agendar
+                        Administração
                     </a>
-
-
-                    <a
-                        href="{{ url_for('booking.dashboard') }}"
-                        class="rounded-xl px-3 py-3 transition hover:bg-white/5 {% if endpoint == 'booking.dashboard' %}bg-white/5 text-white{% endif %}"
-                    >
-                        Meus horários
-                    </a>
-
-
-                    <a
-                        href="{{ url_for('auth.profile') }}"
-                        class="rounded-xl px-3 py-3 transition hover:bg-white/5 {% if endpoint == 'auth.profile' %}bg-white/5 text-white{% endif %}"
-                    >
-                        Perfil
-                    </a>
-
-
-                    {% if current_user.is_admin %}
-
-                        <a
-                            href="{{ url_for('admin.dashboard') }}"
-                            class="rounded-xl px-3 py-3 transition hover:bg-barber-400/10 hover:text-barber-300 {% if endpoint.startswith('admin.') %}bg-barber-400/10 text-barber-300{% endif %}"
-                        >
-                            Administração
-                        </a>
-
-                    {% endif %}
-
-
-                    <div class="my-2 border-t border-white/10"></div>
-
-
-                    <form
-                        method="post"
-                        action="{{ url_for('auth.logout') }}"
-                    >
-                        <input
-                            type="hidden"
-                            name="csrf_token"
-                            value="{{ csrf_token() }}"
-                        >
-
-                        <button
-                            type="submit"
-                            class="w-full rounded-xl px-3 py-3 text-left text-rose-300 transition hover:bg-rose-400/10"
-                        >
-                            Sair
-                        </button>
-                    </form>
-
-
-                {% else %}
-
-                    <a
-                        href="{{ url_for('auth.login') }}"
-                        class="rounded-xl px-3 py-3 transition hover:bg-white/5 {% if endpoint == 'auth.login' %}bg-white/5 text-white{% endif %}"
-                    >
-                        Entrar
-                    </a>
-
-
-                    <a
-                        href="{{ url_for('auth.register') }}"
-                        class="mt-1 rounded-xl bg-barber-400 px-3 py-3 text-center font-black text-zinc-950 transition hover:bg-barber-300"
-                    >
-                        Criar conta
-                    </a>
-
                 {% endif %}
 
-            </div>
-
-        </nav>
-
-    </header>
-
-
-    <!-- Conteúdo -->
-    <main
-        id="conteudo-principal"
-        class="mx-auto min-h-[calc(100vh-9rem)] w-[min(1180px,92vw)] py-8 sm:py-12"
-        tabindex="-1"
-    >
-
-        <!-- Flash messages -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-
-            {% if messages %}
-
-                <section
-                    id="flashMessages"
-                    class="mb-6 space-y-3"
-                    aria-live="polite"
-                    aria-label="Mensagens do sistema"
+                <form
+                    method="post"
+                    action="{{ url_for('auth.logout') }}"
                 >
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-                    {% for category, message in messages %}
+                    <button
+                        type="submit"
+                        class="w-full rounded-xl px-4 py-3 text-left text-sm font-black text-red-300 hover:bg-red-500/10"
+                    >
+                        Sair
+                    </button>
+                </form>
 
-                        {% if category == "success" %}
+            {% else %}
 
-                            {% set alert_classes = "border-emerald-400/25 bg-emerald-400/10 text-emerald-100" %}
-                            {% set alert_icon = "✓" %}
+                <a
+                    href="{{ url_for('auth.login') }}"
+                    class="rounded-xl px-4 py-3 text-sm font-black text-zinc-300 hover:bg-white/5"
+                >
+                    Entrar
+                </a>
 
-                        {% elif category == "danger" %}
-
-                            {% set alert_classes = "border-rose-400/25 bg-rose-400/10 text-rose-100" %}
-                            {% set alert_icon = "!" %}
-
-                        {% elif category == "warning" %}
-
-                            {% set alert_classes = "border-amber-400/25 bg-amber-400/10 text-amber-100" %}
-                            {% set alert_icon = "⚠" %}
-
-                        {% else %}
-
-                            {% set alert_classes = "border-sky-400/25 bg-sky-400/10 text-sky-100" %}
-                            {% set alert_icon = "i" %}
-
-                        {% endif %}
-
-
-                        <div
-                            class="flash-message flex items-start gap-3 rounded-2xl border px-4 py-3 shadow-lg backdrop-blur {{ alert_classes }}"
-                            role="status"
-                        >
-
-                            <span class="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-black/15 text-xs font-black">
-                                {{ alert_icon }}
-                            </span>
-
-
-                            <div class="min-w-0 flex-1 pt-0.5 text-sm font-semibold">
-                                {{ message }}
-                            </div>
-
-
-                            <button
-                                type="button"
-                                class="dismiss-flash grid h-7 w-7 shrink-0 place-items-center rounded-lg text-current/70 transition hover:bg-black/10 hover:text-current"
-                                aria-label="Fechar mensagem"
-                            >
-                                ×
-                            </button>
-
-                        </div>
-
-                    {% endfor %}
-
-                </section>
+                <a
+                    href="{{ url_for('auth.register') }}"
+                    class="rounded-xl bg-gradient-to-r from-[#f4600d] to-[#ef9e34] px-4 py-3 text-center text-sm font-black text-black"
+                >
+                    Criar conta
+                </a>
 
             {% endif %}
 
-        {% endwith %}
+        </div>
+    </div>
 
+</header>
+
+<main class="min-h-[calc(100vh-77px)] py-6 sm:py-8">
+    <div class="mx-auto w-[min(1180px,calc(100%-1.25rem))]">
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="mb-5 grid gap-2">
+                    {% for category, message in messages %}
+                        <div
+                            class="rounded-2xl border px-4 py-3 text-sm font-bold shadow-lg
+                            {% if category == 'success' %}
+                                border-emerald-400/20 bg-emerald-400/5 text-emerald-200
+                            {% elif category in ['danger', 'error'] %}
+                                border-red-400/20 bg-red-400/5 text-red-200
+                            {% elif category == 'warning' %}
+                                border-amber-400/20 bg-amber-400/5 text-amber-200
+                            {% else %}
+                                border-sky-400/20 bg-sky-400/5 text-sky-200
+                            {% endif %}"
+                        >
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
 
         {% block content %}{% endblock %}
 
-    </main>
+    </div>
+</main>
 
+<footer class="border-t border-white/10 bg-black/30">
+    <div class="mx-auto flex min-h-24 w-[min(1180px,calc(100%-1.25rem))] flex-col justify-center gap-2 py-5 text-xs font-bold text-zinc-600 sm:flex-row sm:items-center sm:justify-between">
 
-    <!-- Rodapé -->
-    <footer class="border-t border-white/10 bg-zinc-950/60">
-
-        <div class="mx-auto flex w-[min(1180px,92vw)] flex-col gap-5 py-8 sm:flex-row sm:items-center sm:justify-between">
-
-            <div>
-
-                <div class="flex items-center gap-2">
-
-                    <span class="grid h-8 w-8 place-items-center rounded-xl bg-barber-400 text-sm text-zinc-950">
-                        ✂
-                    </span>
-
-                    <strong class="text-sm text-zinc-300">
-                        {{ app_name }}
-                    </strong>
-
-                </div>
-
-                <p class="mt-2 text-xs text-zinc-600">
-                    Agendamento online simples, rápido e organizado.
-                </p>
-
-            </div>
-
-
-            <div class="text-xs text-zinc-600">
-                © <span id="currentYear"></span> {{ app_name }}
-            </div>
-
+        <div class="flex items-center gap-2">
+            <span class="h-2 w-2 rounded-full bg-[#f4600d] shadow-[0_0_14px_rgba(244,96,13,.8)]"></span>
+            <span>
+                <strong class="text-zinc-400">Recife</strong>
+                • Bairro da Várzea
+            </span>
         </div>
 
-    </footer>
+        <div>
+            Segunda a sábado • 07h às 20h
+        </div>
 
+    </div>
+</footer>
 
-    <!-- Scripts globais -->
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
+<script>
+(() => {
+    const button = document.getElementById("mobileMenuButton");
+    const menu = document.getElementById("mobileMenu");
 
-            const menuButton =
-                document.getElementById(
-                    "mobileMenuButton"
-                );
+    if (!button || !menu) {
+        return;
+    }
 
-            const mobileMenu =
-                document.getElementById(
-                    "mobileMenu"
-                );
+    button.addEventListener("click", () => {
+        const hidden = menu.classList.contains("hidden");
 
+        menu.classList.toggle("hidden", !hidden);
+        button.textContent = hidden ? "✕" : "☰";
+        button.setAttribute("aria-expanded", String(hidden));
+    });
+})();
+</script>
 
-            function closeMobileMenu() {
+{% block scripts %}{% endblock %}
 
-                if (
-                    !menuButton
-                    || !mobileMenu
-                ) {
-                    return;
-                }
-
-                mobileMenu
-                    .classList
-                    .add("hidden");
-
-                menuButton
-                    .setAttribute(
-                        "aria-expanded",
-                        "false"
-                    );
-
-                menuButton
-                    .setAttribute(
-                        "aria-label",
-                        "Abrir menu"
-                    );
-
-                menuButton.textContent =
-                    "☰";
-            }
-
-
-            function toggleMobileMenu() {
-
-                if (
-                    !menuButton
-                    || !mobileMenu
-                ) {
-                    return;
-                }
-
-                mobileMenu
-                    .classList
-                    .toggle("hidden");
-
-                const open =
-                    !mobileMenu
-                        .classList
-                        .contains("hidden");
-
-                menuButton
-                    .setAttribute(
-                        "aria-expanded",
-                        String(open)
-                    );
-
-                menuButton
-                    .setAttribute(
-                        "aria-label",
-                        open
-                            ? "Fechar menu"
-                            : "Abrir menu"
-                    );
-
-                menuButton.textContent =
-                    open
-                        ? "✕"
-                        : "☰";
-            }
-
-
-            if (
-                menuButton
-                && mobileMenu
-            ) {
-
-                menuButton
-                    .addEventListener(
-                        "click",
-                        toggleMobileMenu
-                    );
-
-
-                mobileMenu
-                    .querySelectorAll("a")
-                    .forEach((link) => {
-
-                        link.addEventListener(
-                            "click",
-                            closeMobileMenu
-                        );
-                    });
-
-
-                window.addEventListener(
-                    "resize",
-                    () => {
-
-                        if (
-                            window.innerWidth
-                            >= 768
-                        ) {
-                            closeMobileMenu();
-                        }
-                    }
-                );
-
-
-                document.addEventListener(
-                    "keydown",
-                    (event) => {
-
-                        if (
-                            event.key
-                            === "Escape"
-                        ) {
-                            closeMobileMenu();
-                        }
-                    }
-                );
-            }
-
-
-            document
-                .querySelectorAll(
-                    ".dismiss-flash"
-                )
-                .forEach((button) => {
-
-                    button.addEventListener(
-                        "click",
-                        () => {
-
-                            button
-                                .closest(
-                                    ".flash-message"
-                                )
-                                ?.remove();
-                        }
-                    );
-                });
-
-
-            const year =
-                document.getElementById(
-                    "currentYear"
-                );
-
-            if (year) {
-                year.textContent =
-                    new Date()
-                        .getFullYear();
-            }
-
-        });
-    </script>
-
-
-    {% block scripts %}{% endblock %}
 </body>
 </html>

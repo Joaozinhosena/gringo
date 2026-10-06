@@ -1,0 +1,982 @@
+{% extends "base.html" %}
+
+{% block title %}Estatísticas — {{ app_name }}{% endblock %}
+
+{% block content %}
+
+{% set s = statistics %}
+
+<!-- ====================================================== -->
+<!-- CABEÇALHO -->
+<!-- ====================================================== -->
+
+<section class="relative overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-900/70 p-6 shadow-2xl shadow-black/30 sm:p-8">
+
+    <div class="pointer-events-none absolute -right-28 -top-28 h-80 w-80 rounded-full bg-[#f4600d]/10 blur-3xl"></div>
+    <div class="pointer-events-none absolute -bottom-28 -left-20 h-64 w-64 rounded-full bg-[#3f6d87]/10 blur-3xl"></div>
+
+    <div class="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+
+        <div>
+
+            <div class="mb-5 flex w-28 overflow-hidden rounded-full">
+                <span class="h-1.5 flex-1 bg-[#df2610]"></span>
+                <span class="h-1.5 flex-1 bg-[#f5f5f4]"></span>
+                <span class="h-1.5 flex-1 bg-[#3f6d87]"></span>
+                <span class="h-1.5 flex-1 bg-[#f4600d]"></span>
+            </div>
+
+            <span class="text-xs font-black uppercase tracking-[.18em] text-[#f58b46]">
+                INTELIGÊNCIA DO NEGÓCIO
+            </span>
+
+            <h1 class="mt-3 text-4xl font-black tracking-[-.035em] text-white sm:text-5xl">
+                Estatísticas da barbearia
+            </h1>
+
+            <p class="mt-3 max-w-3xl text-sm leading-7 text-zinc-400 sm:text-base">
+                Compare agendamentos, cortes concluídos, cancelamentos, clientes e faturamento por dia.
+            </p>
+
+        </div>
+
+
+        <div class="flex flex-wrap gap-2">
+
+            <a
+                href="{{ url_for('admin.dashboard') }}"
+                class="inline-flex min-h-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[.04] px-4 text-sm font-black text-zinc-300 transition hover:bg-white/[.08]"
+            >
+                ← Painel
+            </a>
+
+            <a
+                href="{{ url_for('admin_stats.statistics_csv', period=s.period_key) }}"
+                class="inline-flex min-h-11 items-center justify-center rounded-2xl bg-gradient-to-r from-[#f4600d] to-[#ef9e34] px-4 text-sm font-black text-black transition hover:brightness-110"
+            >
+                Exportar CSV
+            </a>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- ====================================================== -->
+<!-- FILTRO -->
+<!-- ====================================================== -->
+
+<section class="mt-5 rounded-3xl border border-white/10 bg-zinc-900/70 p-4 shadow-xl">
+
+    <form
+        method="get"
+        class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+    >
+
+        <div>
+            <span class="text-xs font-black uppercase tracking-[.14em] text-zinc-600">
+                PERÍODO ANALISADO
+            </span>
+
+            <p class="mt-1 text-sm font-bold text-zinc-300">
+                {{ s.period_start.strftime('%d/%m/%Y') }}
+                até
+                {{ s.period_end.strftime('%d/%m/%Y') }}
+            </p>
+        </div>
+
+
+        <div class="flex gap-2">
+
+            <select
+                name="period"
+                class="rounded-2xl border border-white/10 bg-[#0d0d0f] px-4 py-3 text-sm font-black text-zinc-200 outline-none focus:border-[#f4600d]/50"
+            >
+                {% for key, label in period_options %}
+                    <option
+                        value="{{ key }}"
+                        {% if key == s.period_key %}selected{% endif %}
+                    >
+                        {{ label }}
+                    </option>
+                {% endfor %}
+            </select>
+
+            <button
+                type="submit"
+                class="rounded-2xl bg-[#f4600d] px-4 py-3 text-sm font-black text-black transition hover:bg-[#ef9e34]"
+            >
+                Aplicar
+            </button>
+
+        </div>
+
+    </form>
+
+</section>
+
+
+<!-- ====================================================== -->
+<!-- INDICADORES PRINCIPAIS -->
+<!-- ====================================================== -->
+
+<section class="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+
+    <article class="rounded-3xl border border-white/10 bg-zinc-900/70 p-5 shadow-xl">
+
+        <div class="flex items-center justify-between">
+            <span class="text-sm font-bold text-zinc-500">
+                Clientes que agendaram
+            </span>
+
+            <span class="grid h-10 w-10 place-items-center rounded-2xl bg-sky-400/10 text-sky-300">
+                👤
+            </span>
+        </div>
+
+        <strong class="mt-5 block text-4xl font-black text-white">
+            {{ s.unique_clients }}
+        </strong>
+
+        <span class="mt-1 block text-xs font-bold text-zinc-600">
+            {{ s.returning_clients }} cliente(s) retornaram
+        </span>
+
+    </article>
+
+
+    <article class="rounded-3xl border border-white/10 bg-zinc-900/70 p-5 shadow-xl">
+
+        <div class="flex items-center justify-between">
+            <span class="text-sm font-bold text-zinc-500">
+                Cortes concluídos
+            </span>
+
+            <span class="grid h-10 w-10 place-items-center rounded-2xl bg-emerald-400/10 text-emerald-300">
+                ✓
+            </span>
+        </div>
+
+        <strong class="mt-5 block text-4xl font-black text-emerald-300">
+            {{ s.completed }}
+        </strong>
+
+        <span class="mt-1 block text-xs font-bold text-zinc-600">
+            {{ s.completion_rate }}% dos atendimentos finalizados
+        </span>
+
+    </article>
+
+
+    <article class="rounded-3xl border border-white/10 bg-zinc-900/70 p-5 shadow-xl">
+
+        <div class="flex items-center justify-between">
+            <span class="text-sm font-bold text-zinc-500">
+                Cancelamentos
+            </span>
+
+            <span class="grid h-10 w-10 place-items-center rounded-2xl bg-red-400/10 text-red-300">
+                ×
+            </span>
+        </div>
+
+        <strong class="mt-5 block text-4xl font-black text-red-300">
+            {{ s.cancelled }}
+        </strong>
+
+        <span class="mt-1 block text-xs font-bold text-zinc-600">
+            taxa de {{ s.cancellation_rate }}%
+        </span>
+
+    </article>
+
+
+    <article class="rounded-3xl border border-[#f4600d]/20 bg-[#f4600d]/5 p-5 shadow-xl">
+
+        <div class="flex items-center justify-between">
+            <span class="text-sm font-bold text-zinc-400">
+                Faturamento realizado
+            </span>
+
+            <span class="grid h-10 w-10 place-items-center rounded-2xl bg-[#f4600d]/10 font-black text-[#f58b46]">
+                R$
+            </span>
+        </div>
+
+        <strong class="mt-5 block text-3xl font-black text-[#f58b46] sm:text-4xl">
+            {{ s.revenue_cents|money }}
+        </strong>
+
+        <span class="mt-1 block text-xs font-bold text-zinc-600">
+            apenas atendimentos concluídos
+        </span>
+
+    </article>
+
+</section>
+
+
+<!-- ====================================================== -->
+<!-- INDICADORES FINANCEIROS -->
+<!-- ====================================================== -->
+
+<section class="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+
+    <article class="rounded-3xl border border-white/10 bg-zinc-900/60 p-5">
+        <span class="text-xs font-black uppercase tracking-wider text-zinc-600">
+            Ticket médio
+        </span>
+
+        <strong class="mt-3 block text-2xl font-black text-white">
+            {{ s.average_ticket_cents|money }}
+        </strong>
+
+        <span class="mt-1 block text-xs text-zinc-600">
+            por corte concluído
+        </span>
+    </article>
+
+
+    <article class="rounded-3xl border border-white/10 bg-zinc-900/60 p-5">
+        <span class="text-xs font-black uppercase tracking-wider text-zinc-600">
+            Média diária
+        </span>
+
+        <strong class="mt-3 block text-2xl font-black text-white">
+            {{ s.average_daily_revenue_cents|money }}
+        </strong>
+
+        <span class="mt-1 block text-xs text-zinc-600">
+            nos dias com faturamento
+        </span>
+    </article>
+
+
+    <article class="rounded-3xl border border-amber-400/15 bg-amber-400/5 p-5">
+        <span class="text-xs font-black uppercase tracking-wider text-amber-300/70">
+            Valor cancelado
+        </span>
+
+        <strong class="mt-3 block text-2xl font-black text-amber-200">
+            {{ s.cancelled_value_cents|money }}
+        </strong>
+
+        <span class="mt-1 block text-xs text-amber-100/40">
+            potencial não realizado
+        </span>
+    </article>
+
+
+    <article class="rounded-3xl border border-sky-400/15 bg-sky-400/5 p-5">
+        <span class="text-xs font-black uppercase tracking-wider text-sky-300/70">
+            Receita futura
+        </span>
+
+        <strong class="mt-3 block text-2xl font-black text-sky-200">
+            {{ s.projected_cents|money }}
+        </strong>
+
+        <span class="mt-1 block text-xs text-sky-100/40">
+            {{ s.future_scheduled }} agendamento(s) futuro(s)
+        </span>
+    </article>
+
+</section>
+
+
+<!-- ====================================================== -->
+<!-- MELHORES DIAS -->
+<!-- ====================================================== -->
+
+<section class="mt-5 grid gap-5 lg:grid-cols-3">
+
+    <article class="rounded-[2rem] border border-[#f4600d]/20 bg-zinc-900/70 p-6 shadow-xl">
+
+        <span class="text-xs font-black uppercase tracking-[.15em] text-[#f58b46]">
+            DIA DA SEMANA MAIS FORTE
+        </span>
+
+        {% if s.best_weekday %}
+
+            <strong class="mt-3 block text-3xl font-black text-white">
+                {{ s.best_weekday.name }}
+            </strong>
+
+            <p class="mt-2 text-sm text-zinc-500">
+                {{ s.best_weekday.completed }}
+                corte(s) concluído(s) no período.
+            </p>
+
+            <p class="mt-3 text-sm font-black text-[#f58b46]">
+                {{ s.best_weekday.revenue_cents|money }}
+                faturados
+            </p>
+
+        {% else %}
+
+            <p class="mt-3 text-sm text-zinc-500">
+                Ainda não há cortes concluídos suficientes para identificar o melhor dia.
+            </p>
+
+        {% endif %}
+
+    </article>
+
+
+    <article class="rounded-[2rem] border border-white/10 bg-zinc-900/70 p-6 shadow-xl">
+
+        <span class="text-xs font-black uppercase tracking-[.15em] text-zinc-600">
+            MELHOR DATA EM VOLUME
+        </span>
+
+        {% if s.best_date %}
+
+            <strong class="mt-3 block text-3xl font-black text-white">
+                {{ s.best_date.full_label }}
+            </strong>
+
+            <p class="mt-2 text-sm text-zinc-500">
+                {{ s.best_date.weekday }}
+                ·
+                {{ s.best_date.completed }} corte(s)
+            </p>
+
+            <p class="mt-3 text-sm font-black text-emerald-300">
+                {{ s.best_date.revenue_cents|money }}
+            </p>
+
+        {% else %}
+
+            <p class="mt-3 text-sm text-zinc-500">
+                Nenhum atendimento concluído no período.
+            </p>
+
+        {% endif %}
+
+    </article>
+
+
+    <article class="rounded-[2rem] border border-white/10 bg-zinc-900/70 p-6 shadow-xl">
+
+        <span class="text-xs font-black uppercase tracking-[.15em] text-zinc-600">
+            MAIOR FATURAMENTO DIÁRIO
+        </span>
+
+        {% if s.best_revenue_date %}
+
+            <strong class="mt-3 block text-3xl font-black text-white">
+                {{ s.best_revenue_date.revenue_cents|money }}
+            </strong>
+
+            <p class="mt-2 text-sm text-zinc-500">
+                {{ s.best_revenue_date.full_label }}
+                ·
+                {{ s.best_revenue_date.completed }} corte(s)
+            </p>
+
+        {% else %}
+
+            <p class="mt-3 text-sm text-zinc-500">
+                Nenhum faturamento concluído no período.
+            </p>
+
+        {% endif %}
+
+    </article>
+
+</section>
+
+
+<!-- ====================================================== -->
+<!-- GRÁFICOS ESTATÍSTICOS -->
+<!-- ====================================================== -->
+
+<section class="mt-5 grid gap-5 xl:grid-cols-2">
+
+    <!-- ================================================== -->
+    <!-- CORTES / CANCELAMENTOS / AGENDADOS -->
+    <!-- ================================================== -->
+
+    <article class="overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-900/70 p-5 shadow-xl sm:p-6">
+
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+
+            <div>
+                <span class="text-xs font-black uppercase tracking-[.15em] text-zinc-600">
+                    COMPARATIVO DIÁRIO
+                </span>
+
+                <h2 class="mt-1 text-xl font-black text-white">
+                    Movimento dos atendimentos
+                </h2>
+            </div>
+
+            <div class="flex flex-wrap gap-3 text-[10px] font-black uppercase tracking-wider">
+
+                <span class="flex items-center gap-1.5 text-emerald-300">
+                    <span class="h-2.5 w-2.5 rounded-sm bg-emerald-400"></span>
+                    Cortes
+                </span>
+
+                <span class="flex items-center gap-1.5 text-red-300">
+                    <span class="h-2.5 w-2.5 rounded-sm bg-red-400"></span>
+                    Cancelados
+                </span>
+
+                <span class="flex items-center gap-1.5 text-sky-300">
+                    <span class="h-2.5 w-2.5 rounded-sm bg-sky-300"></span>
+                    Agendados
+                </span>
+
+            </div>
+
+        </div>
+
+
+        {% if s.chart_daily_rows %}
+
+            <div class="mt-6 overflow-x-auto pb-3">
+
+                <div
+                    class="flex h-[300px] min-w-max items-end gap-3 border-b border-white/10 px-2 pt-8"
+                >
+
+                    {% for row in s.chart_daily_rows %}
+
+                        <div class="flex h-full w-[72px] shrink-0 flex-col justify-end">
+
+                            <div class="relative flex h-[235px] items-end justify-center gap-1">
+
+                                <!-- CONCLUÍDOS -->
+                                <div
+                                    class="group relative w-4 rounded-t-md bg-emerald-400 transition hover:brightness-110"
+                                    style="height: {{ row.completed_percent }}%; min-height: {% if row.completed > 0 %}4px{% else %}0{% endif %};"
+                                    title="{{ row.full_label }} — {{ row.completed }} corte(s)"
+                                >
+                                    {% if row.completed > 0 %}
+                                        <span class="absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] font-black text-emerald-300">
+                                            {{ row.completed }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+
+                                <!-- CANCELADOS -->
+                                <div
+                                    class="group relative w-4 rounded-t-md bg-red-400 transition hover:brightness-110"
+                                    style="height: {{ row.cancelled_percent }}%; min-height: {% if row.cancelled > 0 %}4px{% else %}0{% endif %};"
+                                    title="{{ row.full_label }} — {{ row.cancelled }} cancelado(s)"
+                                >
+                                    {% if row.cancelled > 0 %}
+                                        <span class="absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] font-black text-red-300">
+                                            {{ row.cancelled }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+
+                                <!-- AINDA AGENDADOS -->
+                                <div
+                                    class="group relative w-4 rounded-t-md bg-sky-300 transition hover:brightness-110"
+                                    style="height: {{ row.scheduled_percent }}%; min-height: {% if row.scheduled > 0 %}4px{% else %}0{% endif %};"
+                                    title="{{ row.full_label }} — {{ row.scheduled }} agendado(s)"
+                                >
+                                    {% if row.scheduled > 0 %}
+                                        <span class="absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] font-black text-sky-300">
+                                            {{ row.scheduled }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+
+                            </div>
+
+                            <div class="mt-3 text-center">
+                                <strong class="block text-[10px] font-black text-zinc-400">
+                                    {{ row.label }}
+                                </strong>
+
+                                <span class="mt-0.5 block text-[9px] font-bold text-zinc-700">
+                                    {{ row.weekday_short }}
+                                </span>
+                            </div>
+
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            </div>
+
+        {% else %}
+
+            <div class="mt-6 rounded-2xl border border-dashed border-white/10 p-8 text-center text-sm font-bold text-zinc-600">
+                Ainda não existem agendamentos no período selecionado.
+            </div>
+
+        {% endif %}
+
+    </article>
+
+
+    <!-- ================================================== -->
+    <!-- FATURAMENTO POR DIA -->
+    <!-- ================================================== -->
+
+    <article class="overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-900/70 p-5 shadow-xl sm:p-6">
+
+        <div>
+
+            <span class="text-xs font-black uppercase tracking-[.15em] text-zinc-600">
+                FATURAMENTO DIÁRIO
+            </span>
+
+            <h2 class="mt-1 text-xl font-black text-white">
+                Ganho dos cortes concluídos
+            </h2>
+
+            <p class="mt-2 text-xs leading-5 text-zinc-600">
+                Cancelamentos e horários ainda agendados não entram no valor realizado.
+            </p>
+
+        </div>
+
+
+        {% if s.chart_daily_rows and s.revenue_cents > 0 %}
+
+            <div class="mt-6 overflow-x-auto pb-3">
+
+                <div
+                    class="flex h-[300px] min-w-max items-end gap-4 border-b border-white/10 px-3 pt-8"
+                >
+
+                    {% for row in s.chart_daily_rows %}
+
+                        <div class="flex h-full w-[70px] shrink-0 flex-col justify-end">
+
+                            <div class="relative flex h-[235px] items-end justify-center">
+
+                                <div
+                                    class="relative w-8 rounded-t-xl bg-gradient-to-t from-[#f4600d] to-[#ef9e34] shadow-[0_0_20px_rgba(244,96,13,.10)] transition hover:brightness-110"
+                                    style="height: {{ row.revenue_percent }}%; min-height: {% if row.revenue_cents > 0 %}4px{% else %}0{% endif %};"
+                                    title="{{ row.full_label }} — {{ row.revenue_cents|money }}"
+                                >
+                                    {% if row.revenue_cents > 0 %}
+                                        <span class="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] font-black text-[#f58b46]">
+                                            {{ row.revenue_cents|money }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+
+                            </div>
+
+                            <div class="mt-3 text-center">
+                                <strong class="block text-[10px] font-black text-zinc-400">
+                                    {{ row.label }}
+                                </strong>
+
+                                <span class="mt-0.5 block text-[9px] font-bold text-zinc-700">
+                                    {{ row.weekday_short }}
+                                </span>
+                            </div>
+
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            </div>
+
+        {% else %}
+
+            <div class="mt-6 rounded-2xl border border-dashed border-white/10 p-8 text-center text-sm font-bold text-zinc-600">
+                Ainda não existem cortes concluídos com faturamento neste período.
+            </div>
+
+        {% endif %}
+
+    </article>
+
+</section>
+
+
+<!-- ====================================================== -->
+<!-- CORTES POR DIA DA SEMANA -->
+<!-- ====================================================== -->
+
+<section class="mt-5 overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-900/70 p-5 shadow-xl sm:p-6">
+
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+
+        <div>
+            <span class="text-xs font-black uppercase tracking-[.15em] text-zinc-600">
+                COMPARATIVO SEMANAL
+            </span>
+
+            <h2 class="mt-1 text-xl font-black text-white">
+                Dia da semana com mais cortes
+            </h2>
+        </div>
+
+        {% if s.best_weekday %}
+            <div class="rounded-2xl border border-[#f4600d]/20 bg-[#f4600d]/5 px-4 py-3">
+
+                <span class="block text-[10px] font-black uppercase tracking-wider text-zinc-600">
+                    Maior movimento
+                </span>
+
+                <strong class="mt-1 block text-sm font-black text-[#f58b46]">
+                    {{ s.best_weekday.name }}
+                    ·
+                    {{ s.best_weekday.completed }} corte(s)
+                </strong>
+
+            </div>
+        {% endif %}
+
+    </div>
+
+
+    {% if s.completed > 0 %}
+
+        <div class="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+
+            {% for row in s.weekday_rows %}
+
+                {% if row.index <= 5 %}
+
+                    <article class="rounded-2xl border border-white/10 bg-black/10 p-4">
+
+                        <div class="flex items-center justify-between gap-2">
+
+                            <strong class="text-sm font-black text-zinc-300">
+                                {{ row.name }}
+                            </strong>
+
+                            <span class="text-xs font-black text-[#f58b46]">
+                                {{ row.completed }}
+                            </span>
+
+                        </div>
+
+
+                        <div class="mt-4 h-36 rounded-xl bg-white/[.025] p-2">
+
+                            <div class="flex h-full items-end">
+
+                                <div
+                                    class="w-full rounded-lg bg-gradient-to-t from-[#3f6d87] to-[#f4600d]"
+                                    style="height: {{ row.completed_percent }}%; min-height: {% if row.completed > 0 %}5px{% else %}0{% endif %};"
+                                    title="{{ row.name }} — {{ row.completed }} corte(s)"
+                                ></div>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="mt-3 flex items-center justify-between text-[10px] font-bold text-zinc-600">
+
+                            <span>
+                                {{ row.cancelled }} cancel.
+                            </span>
+
+                            <span>
+                                {{ row.revenue_cents|money }}
+                            </span>
+
+                        </div>
+
+                    </article>
+
+                {% endif %}
+
+            {% endfor %}
+
+        </div>
+
+    {% else %}
+
+        <div class="mt-6 rounded-2xl border border-dashed border-white/10 p-8 text-center text-sm font-bold text-zinc-600">
+            Ainda não existem cortes concluídos para comparar os dias da semana.
+        </div>
+
+    {% endif %}
+
+</section>
+
+
+<!-- ====================================================== -->
+<!-- RESUMO FINANCEIRO FINAL -->
+<!-- ====================================================== -->
+
+<section class="mt-5 overflow-hidden rounded-[2rem] border border-[#f4600d]/20 bg-gradient-to-br from-[#f4600d]/10 via-zinc-900/70 to-[#3f6d87]/10 p-6 shadow-xl sm:p-8">
+
+    <div class="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
+
+        <div>
+
+            <span class="text-xs font-black uppercase tracking-[.16em] text-[#f58b46]">
+                SALDO FINAL DO PERÍODO
+            </span>
+
+            <h2 class="mt-2 text-3xl font-black tracking-tight text-white">
+                {{ s.revenue_cents|money }}
+            </h2>
+
+            <p class="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">
+                Faturamento bruto correspondente aos
+                <strong class="text-emerald-300">{{ s.completed }} cortes concluídos</strong>
+                dentro de {{ s.period_label|lower }}.
+            </p>
+
+        </div>
+
+
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+
+            <div class="rounded-2xl border border-white/10 bg-black/15 p-4 text-center">
+                <span class="text-[10px] font-black uppercase tracking-wider text-zinc-600">
+                    Ticket médio
+                </span>
+
+                <strong class="mt-2 block text-lg font-black text-white">
+                    {{ s.average_ticket_cents|money }}
+                </strong>
+            </div>
+
+            <div class="rounded-2xl border border-white/10 bg-black/15 p-4 text-center">
+                <span class="text-[10px] font-black uppercase tracking-wider text-zinc-600">
+                    Cancelado
+                </span>
+
+                <strong class="mt-2 block text-lg font-black text-red-300">
+                    {{ s.cancelled_value_cents|money }}
+                </strong>
+            </div>
+
+            <div class="col-span-2 rounded-2xl border border-white/10 bg-black/15 p-4 text-center sm:col-span-1">
+                <span class="text-[10px] font-black uppercase tracking-wider text-zinc-600">
+                    Futuro
+                </span>
+
+                <strong class="mt-2 block text-lg font-black text-sky-300">
+                    {{ s.projected_cents|money }}
+                </strong>
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- ====================================================== -->
+<!-- TABELA DIÁRIA -->
+<!-- ====================================================== -->
+
+<section class="mt-5 rounded-[2rem] border border-white/10 bg-zinc-900/70 p-5 shadow-xl sm:p-7">
+
+    <div class="mb-5">
+        <span class="text-xs font-black uppercase tracking-[.15em] text-zinc-600">
+            SALDO DOS DIAS
+        </span>
+
+        <h2 class="mt-1 text-2xl font-black text-white">
+            Resultado diário
+        </h2>
+
+        <p class="mt-2 text-sm text-zinc-500">
+            O valor exibido é faturamento bruto dos serviços concluídos. Custos e despesas ainda não são descontados.
+        </p>
+    </div>
+
+
+    <div class="overflow-x-auto">
+
+        <table class="w-full min-w-[900px] text-left text-sm">
+
+            <thead class="text-[11px] font-black uppercase tracking-wider text-zinc-600">
+                <tr class="border-b border-white/10">
+                    <th class="px-3 py-3">Data</th>
+                    <th class="px-3 py-3 text-center">Marcados</th>
+                    <th class="px-3 py-3 text-center">Cortes</th>
+                    <th class="px-3 py-3 text-center">Cancelados</th>
+                    <th class="px-3 py-3 text-center">Em aberto</th>
+                    <th class="px-3 py-3 text-center">Cancelamento</th>
+                    <th class="px-3 py-3 text-right">Faturamento</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for row in s.daily_rows %}
+
+                    {% if row.total > 0 %}
+                    <tr class="border-b border-white/5 transition hover:bg-white/[.025]">
+
+                        <td class="px-3 py-4">
+                            <strong class="text-zinc-200">
+                                {{ row.full_label }}
+                            </strong>
+
+                            <span class="block text-xs text-zinc-600">
+                                {{ row.weekday }}
+                            </span>
+                        </td>
+
+                        <td class="px-3 py-4 text-center font-black text-zinc-300">
+                            {{ row.total }}
+                        </td>
+
+                        <td class="px-3 py-4 text-center font-black text-emerald-300">
+                            {{ row.completed }}
+                        </td>
+
+                        <td class="px-3 py-4 text-center font-black text-red-300">
+                            {{ row.cancelled }}
+                        </td>
+
+                        <td class="px-3 py-4 text-center font-black text-sky-300">
+                            {{ row.scheduled }}
+                        </td>
+
+                        <td class="px-3 py-4 text-center text-zinc-400">
+                            {{ row.cancellation_rate }}%
+                        </td>
+
+                        <td class="px-3 py-4 text-right font-black text-[#f58b46]">
+                            {{ row.revenue_cents|money }}
+                        </td>
+
+                    </tr>
+                    {% endif %}
+
+                {% else %}
+
+                    <tr>
+                        <td
+                            colspan="7"
+                            class="py-10 text-center text-zinc-600"
+                        >
+                            Nenhum dado encontrado para este período.
+                        </td>
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+
+<!-- ====================================================== -->
+<!-- CLIENTES -->
+<!-- ====================================================== -->
+
+<section class="mt-5 rounded-[2rem] border border-white/10 bg-zinc-900/70 p-5 shadow-xl sm:p-7">
+
+    <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+
+        <div>
+            <span class="text-xs font-black uppercase tracking-[.15em] text-zinc-600">
+                CLIENTES
+            </span>
+
+            <h2 class="mt-1 text-2xl font-black text-white">
+                Clientes com mais atendimentos
+            </h2>
+        </div>
+
+        <span class="text-xs font-bold text-zinc-600">
+            Retorno de clientes: {{ s.client_return_rate }}%
+        </span>
+
+    </div>
+
+
+    <div class="grid gap-3 lg:grid-cols-2">
+
+        {% for client in s.top_clients %}
+
+            <article class="rounded-2xl border border-white/10 bg-black/10 p-4">
+
+                <div class="flex items-start justify-between gap-4">
+
+                    <div class="min-w-0">
+
+                        <strong class="block truncate text-sm font-black text-white">
+                            {{ client.name }}
+                        </strong>
+
+                        <span class="mt-1 block truncate text-xs text-zinc-600">
+                            {{ client.email }}
+                        </span>
+
+                    </div>
+
+                    <strong class="shrink-0 text-lg font-black text-[#f58b46]">
+                        {{ client.completed }}
+                        <span class="text-xs text-zinc-600">
+                            cortes
+                        </span>
+                    </strong>
+
+                </div>
+
+
+                <div class="mt-4 grid grid-cols-3 gap-2 text-center">
+
+                    <div class="rounded-xl bg-white/[.03] p-2">
+                        <strong class="block text-sm text-zinc-300">
+                            {{ client.total }}
+                        </strong>
+                        <span class="text-[10px] text-zinc-600">
+                            marcou
+                        </span>
+                    </div>
+
+                    <div class="rounded-xl bg-red-400/5 p-2">
+                        <strong class="block text-sm text-red-300">
+                            {{ client.cancelled }}
+                        </strong>
+                        <span class="text-[10px] text-zinc-600">
+                            cancelou
+                        </span>
+                    </div>
+
+                    <div class="rounded-xl bg-emerald-400/5 p-2">
+                        <strong class="block text-sm text-emerald-300">
+                            {{ client.revenue_cents|money }}
+                        </strong>
+                        <span class="text-[10px] text-zinc-600">
+                            faturado
+                        </span>
+                    </div>
+
+                </div>
+
+            </article>
+
+        {% else %}
+
+            <div class="rounded-2xl border border-dashed border-white/10 p-6 text-sm text-zinc-600 lg:col-span-2">
+                Nenhum cliente com agendamentos no período.
+            </div>
+
+        {% endfor %}
+
+    </div>
+
+</section>
+
+{% endblock %}
+
+
+

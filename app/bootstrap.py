@@ -8,7 +8,7 @@ from .models import Professional, Service, User
 
 DEFAULT_PROFESSIONALS = [
     {
-        "name": "Profissional",
+        "name": "",
         "bio": "",
         "active": True,
     },

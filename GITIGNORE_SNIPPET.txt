@@ -1,0 +1,11 @@
+# Segredos locais
+.env
+
+# Ambiente Python
+venv/
+venv2/
+__pycache__/
+*.pyc
+
+# Banco local
+instance/*.db

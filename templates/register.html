@@ -1,77 +1,67 @@
 {% extends "base.html" %}
 
-{% block title %}Criar conta — {{ app_name }}{% endblock %}
+{% block title %}Criar conta — Gringo Barber{% endblock %}
 
 {% block content %}
 
-<section class="grid min-h-[68vh] place-items-center py-6">
+<section class="grid min-h-[68vh] place-items-center py-5">
 
-    <div class="grid w-full max-w-5xl overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-900/75 shadow-2xl lg:grid-cols-[.95fr_1.05fr]">
+    <div class="grid w-full max-w-5xl overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-900/75 shadow-2xl shadow-black/40 lg:grid-cols-[.9fr_1.1fr]">
 
-        <aside class="hidden bg-gradient-to-br from-barber-400/15 via-zinc-900 to-zinc-950 p-9 lg:flex lg:flex-col lg:justify-between">
+        <aside class="relative hidden min-h-[650px] overflow-hidden lg:block">
 
-            <div class="grid h-14 w-14 place-items-center rounded-2xl bg-barber-400 text-2xl text-zinc-950">
-                ✂
-            </div>
+            <img
+                src="{{ url_for('static', filename='imagens/gringo-logo.jpg') }}"
+                alt="Gringo Barber"
+                class="absolute inset-0 h-full w-full object-cover"
+            >
 
-            <div>
+            <div class="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-transparent"></div>
 
-                <span class="text-xs font-black tracking-[.18em] text-barber-300">
+            <div class="absolute inset-x-0 bottom-0 p-9">
+
+                <div class="mb-5 flex w-24 overflow-hidden rounded-full">
+                    <span class="h-1.5 flex-1 bg-[#df2610]"></span>
+                    <span class="h-1.5 flex-1 bg-[#f5f5f4]"></span>
+                    <span class="h-1.5 flex-1 bg-[#3f6d87]"></span>
+                </div>
+
+                <span class="text-xs font-black uppercase tracking-[.18em] text-[#f58b46]">
                     NOVO CLIENTE
                 </span>
 
-                <h1 class="mt-4 text-4xl font-black tracking-tight">
-                    Sua conta vem antes do agendamento.
+                <h1 class="mt-3 text-4xl font-black tracking-tight text-white">
+                    Seu próximo corte começa aqui.
                 </h1>
 
-                <p class="mt-4 leading-7 text-zinc-400">
-                    Depois do cadastro você será direcionado diretamente para a agenda e poderá escolher seu primeiro horário.
+                <p class="mt-3 max-w-sm text-sm leading-6 text-zinc-300">
+                    Crie sua conta e confirme seu e-mail para liberar o agendamento online.
                 </p>
-
-                <div class="mt-7 space-y-3 text-sm">
-
-                    <div class="flex gap-3 rounded-2xl border border-white/10 bg-black/15 p-4">
-                        <span class="text-emerald-300">✓</span>
-                        <span class="text-zinc-300">Histórico dos seus atendimentos</span>
-                    </div>
-
-                    <div class="flex gap-3 rounded-2xl border border-white/10 bg-black/15 p-4">
-                        <span class="text-emerald-300">✓</span>
-                        <span class="text-zinc-300">Cancelamento de horários futuros</span>
-                    </div>
-
-                    <div class="flex gap-3 rounded-2xl border border-white/10 bg-black/15 p-4">
-                        <span class="text-emerald-300">✓</span>
-                        <span class="text-zinc-300">Perfil individual protegido por login</span>
-                    </div>
-
-                </div>
 
             </div>
 
         </aside>
 
-        <form method="post" class="p-7 sm:p-9">
+        <form method="post" class="p-7 sm:p-10 lg:p-12">
 
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-            <span class="text-xs font-black tracking-[.18em] text-barber-300">
-                CRIAR CONTA
+            <span class="text-xs font-black uppercase tracking-[.18em] text-[#f58b46]">
+                CADASTRO
             </span>
 
-            <h2 class="mt-3 text-3xl font-black tracking-tight">
-                Comece em poucos segundos
+            <h2 class="mt-3 text-4xl font-black tracking-tight text-white">
+                Criar conta
             </h2>
 
-            <p class="mt-2 text-sm leading-6 text-zinc-500">
-                Preencha seus dados. O agendamento será liberado após o cadastro.
+            <p class="mt-3 text-sm leading-6 text-zinc-500">
+                Enviaremos um código de 6 dígitos para confirmar seu e-mail.
             </p>
 
             <div class="mt-8 space-y-5">
 
                 <label class="block">
-
-                    <span class="mb-2 block text-sm font-bold text-zinc-300">
+                    <span class="mb-2 block text-sm font-black text-zinc-300">
                         Nome
                     </span>
 
@@ -82,15 +72,14 @@
                         maxlength="120"
                         autocomplete="name"
                         required
+                        value="{{ form_name|default('') }}"
                         placeholder="Seu nome"
-                        class="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3.5 text-white outline-none transition placeholder:text-zinc-600 focus:border-barber-400/60 focus:ring-4 focus:ring-barber-400/10"
+                        class="w-full rounded-2xl border border-white/10 bg-[#0d0d0f] px-4 py-3.5 text-white outline-none transition placeholder:text-zinc-700 focus:border-[#f4600d]/60 focus:ring-4 focus:ring-[#f4600d]/10"
                     >
-
                 </label>
 
                 <label class="block">
-
-                    <span class="mb-2 block text-sm font-bold text-zinc-300">
+                    <span class="mb-2 block text-sm font-black text-zinc-300">
                         E-mail
                     </span>
 
@@ -99,17 +88,16 @@
                         name="email"
                         autocomplete="email"
                         required
+                        value="{{ form_email|default('') }}"
                         placeholder="voce@exemplo.com"
-                        class="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3.5 text-white outline-none transition placeholder:text-zinc-600 focus:border-barber-400/60 focus:ring-4 focus:ring-barber-400/10"
+                        class="w-full rounded-2xl border border-white/10 bg-[#0d0d0f] px-4 py-3.5 text-white outline-none transition placeholder:text-zinc-700 focus:border-[#f4600d]/60 focus:ring-4 focus:ring-[#f4600d]/10"
                     >
-
                 </label>
 
                 <div class="grid gap-4 sm:grid-cols-2">
 
                     <label class="block">
-
-                        <span class="mb-2 block text-sm font-bold text-zinc-300">
+                        <span class="mb-2 block text-sm font-black text-zinc-300">
                             Senha
                         </span>
 
@@ -119,14 +107,13 @@
                             minlength="8"
                             autocomplete="new-password"
                             required
-                            class="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3.5 text-white outline-none transition focus:border-barber-400/60 focus:ring-4 focus:ring-barber-400/10"
+                            placeholder="Mínimo 8 caracteres"
+                            class="w-full rounded-2xl border border-white/10 bg-[#0d0d0f] px-4 py-3.5 text-white outline-none transition placeholder:text-zinc-700 focus:border-[#f4600d]/60 focus:ring-4 focus:ring-[#f4600d]/10"
                         >
-
                     </label>
 
                     <label class="block">
-
-                        <span class="mb-2 block text-sm font-bold text-zinc-300">
+                        <span class="mb-2 block text-sm font-black text-zinc-300">
                             Confirmar senha
                         </span>
 
@@ -136,29 +123,44 @@
                             minlength="8"
                             autocomplete="new-password"
                             required
-                            class="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3.5 text-white outline-none transition focus:border-barber-400/60 focus:ring-4 focus:ring-barber-400/10"
+                            placeholder="Repita a senha"
+                            class="w-full rounded-2xl border border-white/10 bg-[#0d0d0f] px-4 py-3.5 text-white outline-none transition placeholder:text-zinc-700 focus:border-[#f4600d]/60 focus:ring-4 focus:ring-[#f4600d]/10"
                         >
-
                     </label>
 
                 </div>
 
-                <p class="text-xs leading-5 text-zinc-600">
-                    A senha deve ter pelo menos 8 caracteres.
-                </p>
+                <div class="rounded-2xl border border-sky-400/15 bg-sky-400/5 p-4">
+                    <div class="flex gap-3">
+                        <span class="text-xl">✉</span>
+
+                        <div>
+                            <strong class="block text-sm text-zinc-200">
+                                E-mail verificado
+                            </strong>
+
+                            <span class="mt-1 block text-xs leading-5 text-zinc-500">
+                                A conta só será criada depois da confirmação do código.
+                            </span>
+                        </div>
+                    </div>
+                </div>
 
                 <button
                     type="submit"
-                    class="w-full rounded-2xl bg-barber-400 px-5 py-3.5 font-black text-zinc-950 transition hover:bg-barber-300"
+                    class="w-full rounded-2xl bg-gradient-to-r from-[#f4600d] to-[#ef9e34] px-5 py-3.5 font-black text-black shadow-lg shadow-orange-950/20 transition hover:brightness-110"
                 >
-                    Criar conta e continuar
+                    Enviar código
                 </button>
 
             </div>
 
-            <p class="mt-6 text-center text-sm text-zinc-500">
+            <p class="mt-7 text-center text-sm text-zinc-500">
                 Já possui conta?
-                <a href="{{ url_for('auth.login') }}" class="font-bold text-barber-300 hover:text-barber-200">
+                <a
+                    href="{{ url_for('auth.login') }}"
+                    class="font-black text-[#f58b46] hover:text-[#ffb079]"
+                >
                     Entrar
                 </a>
             </p>

@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Confirmar e-mail — Gringo Barber{% endblock %}
+
+{% block content %}
+
+<section class="grid min-h-[68vh] place-items-center py-6">
+
+    <div class="relative w-full max-w-xl overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-900/80 p-7 shadow-2xl shadow-black/40 sm:p-10">
+
+        <div class="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-[#f4600d]/10 blur-3xl"></div>
+
+        <div class="relative">
+
+            <div class="mx-auto grid h-16 w-16 place-items-center rounded-2xl border border-[#f4600d]/20 bg-[#f4600d]/10 text-3xl">
+                ✉
+            </div>
+
+            <div class="mt-6 text-center">
+                <span class="text-xs font-black uppercase tracking-[.18em] text-[#f58b46]">
+                    SEGURANÇA
+                </span>
+
+                <h1 class="mt-3 text-4xl font-black tracking-tight text-white">
+                    Confirme seu e-mail
+                </h1>
+
+                <p class="mt-3 text-sm leading-6 text-zinc-500">
+                    Digite o código enviado para
+                    <strong class="text-zinc-200">{{ masked_email }}</strong>.
+                </p>
+            </div>
+
+            {% if expired %}
+                <div class="mt-6 rounded-2xl border border-amber-400/20 bg-amber-400/5 p-4 text-sm font-bold text-amber-200">
+                    Este código expirou. Solicite um novo código.
+                </div>
+            {% elif attempts_left == 0 %}
+                <div class="mt-6 rounded-2xl border border-red-400/20 bg-red-400/5 p-4 text-sm font-bold text-red-200">
+                    O limite de tentativas foi atingido. Solicite um novo código.
+                </div>
+            {% endif %}
+
+            <form
+                method="post"
+                action="{{ url_for('auth.verify_email') }}"
+                class="mt-7"
+            >
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <input
+                    type="text"
+                    name="code"
+                    id="verificationCode"
+                    inputmode="numeric"
+                    autocomplete="one-time-code"
+                    pattern="[0-9]{6}"
+                    minlength="6"
+                    maxlength="6"
+                    required
+                    autofocus
+                    placeholder="000000"
+                    class="w-full rounded-2xl border border-white/10 bg-[#0d0d0f] px-4 py-4 text-center text-3xl font-black tracking-[.34em] text-white outline-none transition placeholder:text-zinc-800 focus:border-[#f4600d]/60 focus:ring-4 focus:ring-[#f4600d]/10"
+                >
+
+                <p class="mt-3 text-center text-xs font-bold text-zinc-600">
+                    {% if attempts_left > 0 %}
+                        {{ attempts_left }} tentativa(s) disponível(is)
+                    {% else %}
+                        Solicite um novo código para continuar
+                    {% endif %}
+                </p>
+
+                <button
+                    type="submit"
+                    {% if expired or attempts_left == 0 %}disabled{% endif %}
+                    class="mt-6 w-full rounded-2xl bg-gradient-to-r from-[#f4600d] to-[#ef9e34] px-5 py-3.5 font-black text-black transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                    Confirmar e criar conta
+                </button>
+            </form>
+
+            <form
+                method="post"
+                action="{{ url_for('auth.resend_email_code') }}"
+                class="mt-3"
+            >
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <button
+                    type="submit"
+                    id="resendButton"
+                    class="w-full rounded-2xl border border-white/10 bg-white/[.04] px-5 py-3.5 font-black text-zinc-200 transition hover:bg-white/[.08] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                    Reenviar código
+                </button>
+            </form>
+
+            <a
+                href="{{ url_for('auth.register') }}"
+                class="mt-5 block text-center text-sm font-bold text-zinc-500 hover:text-zinc-300"
+            >
+                Usar outro e-mail
+            </a>
+
+        </div>
+
+    </div>
+
+</section>
+
+<script>
+(() => {
+    const code = document.getElementById("verificationCode");
+
+    if (code) {
+        code.addEventListener("input", () => {
+            code.value = code.value.replace(/\D/g, "").slice(0, 6);
+        });
+    }
+
+    const resend = document.getElementById("resendButton");
+
+    if (!resend) {
+        return;
+    }
+
+    const resendAt = new Date(
+        "{{ pending.resend_available_at.isoformat() }}Z"
+    ).getTime();
+
+    function updateResend() {
+        const seconds = Math.ceil(
+            (resendAt - Date.now()) / 1000
+        );
+
+        if (seconds > 0) {
+            resend.disabled = true;
+            resend.textContent = `Reenviar código em ${seconds}s`;
+
+            setTimeout(updateResend, 500);
+            return;
+        }
+
+        resend.disabled = false;
+        resend.textContent = "Reenviar código";
+    }
+
+    updateResend();
+})();
+</script>
+
+{% endblock %}

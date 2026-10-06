@@ -53,6 +53,14 @@
 
 
             <a
+                href="{{ url_for('admin_stats.statistics') }}"
+                class="rounded-2xl border border-[#f4600d]/20 bg-[#f4600d]/5 px-4 py-3 text-sm font-black text-[#f58b46] transition hover:bg-[#f4600d]/10"
+            >
+                Estatísticas
+            </a>
+
+
+            <a
                 href="#whatsapp"
                 class="rounded-2xl bg-barber-400 px-4 py-3 text-sm font-black text-zinc-950 transition hover:bg-barber-300"
             >
@@ -77,14 +85,15 @@
             Resumo
         </a>
 
-        <a
-            href="#equipe"
-            class="shrink-0 rounded-xl border border-white/10 bg-white/[.03] px-3 py-2 hover:bg-white/10 hover:text-white"
-        >
-            Profissional
-        </a>
 
         <a
+            href="{{ url_for('admin_stats.statistics') }}"
+            class="shrink-0 rounded-xl border border-[#f4600d]/20 bg-[#f4600d]/5 px-3 py-2 font-black text-[#f58b46] transition hover:bg-[#f4600d]/10"
+        >
+            Estatísticas
+        </a>
+
+<a
             href="#catalogo"
             class="shrink-0 rounded-xl border border-white/10 bg-white/[.03] px-3 py-2 hover:bg-white/10 hover:text-white"
         >
@@ -264,101 +273,7 @@
 <!-- CADASTROS -->
 <!-- ====================================================== -->
 
-<section class="mb-6 grid gap-5 xl:grid-cols-2">
-
-
-    <!-- PROFISSIONAL -->
-
-    <form
-        id="equipe"
-        method="post"
-        action="{{ url_for('admin.add_professional') }}"
-        class="rounded-[2rem] border border-white/10 bg-zinc-900/70 p-6 shadow-xl"
-    >
-
-        <input
-            type="hidden"
-            name="csrf_token"
-            value="{{ csrf_token() }}"
-        >
-
-
-        <div class="flex items-center gap-3">
-
-            <span
-                class="grid h-11 w-11 place-items-center rounded-2xl bg-barber-400/10 text-xl text-barber-300"
-            >
-                ✂
-            </span>
-
-
-            <div>
-
-                <span
-                    class="text-xs font-black tracking-[.15em] text-zinc-500"
-                >
-                    EQUIPE
-                </span>
-
-                <h2 class="text-2xl font-black">
-                    Profissional responsável
-                </h2>
-
-            </div>
-
-        </div>
-
-
-        <div
-            class="mt-5 rounded-2xl border border-sky-400/15 bg-sky-400/5 p-4 text-sm leading-6 text-zinc-400"
-        >
-
-            O cliente não escolhe profissional durante o agendamento.
-            O sistema utiliza automaticamente o primeiro profissional ativo.
-
-        </div>
-
-
-        <label class="mt-6 block">
-
-            <span class="mb-2 block text-sm font-bold text-zinc-300">
-                Nome
-            </span>
-
-            <input
-                name="name"
-                required
-                placeholder="Nome do profissional"
-                class="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3.5 text-white outline-none focus:border-barber-400/60 focus:ring-4 focus:ring-barber-400/10"
-            >
-
-        </label>
-
-
-        <label class="mt-4 block">
-
-            <span class="mb-2 block text-sm font-bold text-zinc-300">
-                Descrição
-            </span>
-
-            <textarea
-                name="bio"
-                maxlength="300"
-                placeholder="Especialidades do profissional"
-                class="min-h-28 w-full resize-y rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3.5 text-white outline-none focus:border-barber-400/60 focus:ring-4 focus:ring-barber-400/10"
-            ></textarea>
-
-        </label>
-
-
-        <button
-            type="submit"
-            class="mt-5 rounded-2xl bg-barber-400 px-5 py-3.5 font-black text-zinc-950 hover:bg-barber-300"
-        >
-            Adicionar profissional
-        </button>
-
-    </form>
+<section class="mb-6">
 
 
     <!-- SERVIÇO -->
