@@ -288,6 +288,59 @@
 
 </form>
 
+
+<!-- ====================================================== -->
+<!-- SESSÃO DA CONTA -->
+<!-- ====================================================== -->
+
+<section class="mt-6 rounded-[2rem] border border-red-400/15 bg-red-400/[.035] p-5 shadow-xl sm:p-6">
+
+    <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+
+        <div>
+
+            <span class="text-[11px] font-black uppercase tracking-[.16em] text-red-300/70">
+                SESSÃO DA CONTA
+            </span>
+
+            <h2 class="mt-1 text-xl font-black text-white">
+                Sair da conta
+            </h2>
+
+            <p class="mt-2 max-w-2xl text-sm leading-6 text-zinc-500">
+                Encerre sua sessão neste dispositivo. Seus agendamentos e dados da conta continuarão salvos.
+            </p>
+
+        </div>
+
+
+        <form
+            method="post"
+            action="{{ url_for('auth.logout') }}"
+            onsubmit="return confirm('Deseja realmente sair da sua conta?')"
+            class="shrink-0"
+        >
+
+            <input
+                type="hidden"
+                name="csrf_token"
+                value="{{ csrf_token() }}"
+            >
+
+            <button
+                type="submit"
+                class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-red-400/25 bg-red-400/10 px-5 font-black text-red-200 transition hover:border-red-400/40 hover:bg-red-400/15 sm:w-auto"
+            >
+                <span aria-hidden="true">↪</span>
+                Sair da conta
+            </button>
+
+        </form>
+
+    </div>
+
+</section>
+
 {% endblock %}
 
 

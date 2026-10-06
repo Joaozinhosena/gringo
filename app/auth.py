@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta
 from pathlib import Path
+import hashlib
+import hmac
 import secrets
 
 from flask import (
@@ -18,6 +20,7 @@ from flask_login import (
     login_user,
     logout_user,
 )
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import (
     check_password_hash,
@@ -25,7 +28,10 @@ from werkzeug.security import (
 )
 
 from .email_models import PendingRegistration
-from .email_service import send_verification_email
+from .email_service import (
+    send_password_reset_email,
+    send_verification_email,
+)
 from .extensions import db
 from .models import User
 from .utils import (
@@ -38,6 +44,156 @@ from .utils import (
 bp = Blueprint("auth", __name__)
 
 _PENDING_SESSION_KEY = "_pending_registration_id"
+
+_PASSWORD_RESET_SALT = "gringo-barber-password-reset-v1"
+_PASSWORD_RESET_EXPIRES_MINUTES = 30
+_PASSWORD_RESET_COOLDOWN_SECONDS = 60
+_PASSWORD_RESET_SESSION_KEY = "_password_reset_last_request"
+
+
+def _password_reset_serializer():
+    return URLSafeTimedSerializer(
+        current_app.config["SECRET_KEY"],
+        salt=_PASSWORD_RESET_SALT,
+    )
+
+
+def _password_fingerprint(user):
+    """
+    Vincula o token à senha atual.
+
+    Depois que a senha é alterada, qualquer link antigo deixa
+    automaticamente de ser válido.
+    """
+    value = (
+        user.password_hash
+        or ""
+    ).encode("utf-8")
+
+    return hashlib.sha256(
+        value
+    ).hexdigest()
+
+
+def _generate_password_reset_token(user):
+    return _password_reset_serializer().dumps(
+        {
+            "uid": user.id,
+            "email": user.email,
+            "pwd": _password_fingerprint(user),
+        }
+    )
+
+
+def _load_password_reset_user(token):
+    """
+    Valida assinatura, prazo, usuário, e-mail e a senha-base
+    usada quando o link foi emitido.
+    """
+    try:
+        data = _password_reset_serializer().loads(
+            token,
+            max_age=(
+                _PASSWORD_RESET_EXPIRES_MINUTES
+                * 60
+            ),
+        )
+    except SignatureExpired:
+        return None, "expired"
+    except BadSignature:
+        return None, "invalid"
+
+    try:
+        user_id = int(
+            data.get("uid")
+        )
+    except (
+        TypeError,
+        ValueError,
+    ):
+        return None, "invalid"
+
+    user = db.session.get(
+        User,
+        user_id,
+    )
+
+    if not user:
+        return None, "invalid"
+
+    token_email = (
+        data.get("email")
+        or ""
+    ).strip().lower()
+
+    if (
+        token_email
+        != (
+            user.email
+            or ""
+        ).strip().lower()
+    ):
+        return None, "invalid"
+
+    token_fingerprint = (
+        data.get("pwd")
+        or ""
+    )
+
+    current_fingerprint = (
+        _password_fingerprint(
+            user
+        )
+    )
+
+    if not hmac.compare_digest(
+        token_fingerprint,
+        current_fingerprint,
+    ):
+        return None, "invalid"
+
+    return user, None
+
+
+def _password_reset_on_cooldown():
+    value = session.get(
+        _PASSWORD_RESET_SESSION_KEY
+    )
+
+    if value is None:
+        return False, 0
+
+    try:
+        last_request = float(
+            value
+        )
+    except (
+        TypeError,
+        ValueError,
+    ):
+        session.pop(
+            _PASSWORD_RESET_SESSION_KEY,
+            None,
+        )
+        return False, 0
+
+    now = datetime.utcnow().timestamp()
+
+    remaining = int(
+        _PASSWORD_RESET_COOLDOWN_SECONDS
+        - (
+            now
+            - last_request
+        )
+    )
+
+    return (
+        remaining > 0,
+        max(
+            0,
+            remaining,
+        ),
+    )
 
 
 def _utcnow():
@@ -787,6 +943,297 @@ def resend_email_code():
         url_for(
             "auth.verify_email"
         )
+    )
+
+
+
+# ============================================================
+# RECUPERAÇÃO DE SENHA
+# ============================================================
+
+@bp.route(
+    "/esqueci-minha-senha",
+    methods=["GET", "POST"],
+)
+def forgot_password():
+    if current_user.is_authenticated:
+        return redirect(
+            url_for(
+                "booking.dashboard"
+            )
+        )
+
+    if request.method == "POST":
+        require_csrf()
+
+        email = (
+            request.form
+            .get(
+                "email",
+                "",
+            )
+            .strip()
+            .lower()
+        )
+
+        on_cooldown, seconds = (
+            _password_reset_on_cooldown()
+        )
+
+        if on_cooldown:
+            flash(
+                (
+                    "Aguarde alguns segundos antes de solicitar "
+                    "outro link de redefinição."
+                ),
+                "info",
+            )
+
+            return render_template(
+                "forgot_password.html",
+                form_email=email,
+                cooldown_seconds=seconds,
+            ), 429
+
+        # Marcamos o cooldown antes da consulta para que o
+        # comportamento seja o mesmo para e-mails existentes
+        # e inexistentes.
+        session[
+            _PASSWORD_RESET_SESSION_KEY
+        ] = (
+            datetime.utcnow()
+            .timestamp()
+        )
+
+        user = (
+            User.query
+            .filter_by(
+                email=email
+            )
+            .first()
+        )
+
+        if user:
+            token = (
+                _generate_password_reset_token(
+                    user
+                )
+            )
+
+            reset_url = url_for(
+                "auth.reset_password",
+                token=token,
+                _external=True,
+            )
+
+            try:
+                send_password_reset_email(
+                    to_email=user.email,
+                    customer_name=user.name,
+                    reset_url=reset_url,
+                    expires_minutes=(
+                        _PASSWORD_RESET_EXPIRES_MINUTES
+                    ),
+                )
+
+            except Exception:
+                # Não revelamos no navegador se o e-mail existe.
+                # O erro real permanece no terminal/log do Flask.
+                current_app.logger.exception(
+                    (
+                        "Falha ao enviar o e-mail "
+                        "de redefinição de senha."
+                    )
+                )
+
+        # Resposta deliberadamente genérica:
+        # impede descobrir quais e-mails estão cadastrados.
+        flash(
+            (
+                "Se existir uma conta com esse e-mail, "
+                "você receberá um link para redefinir a senha. "
+                "Verifique também a caixa de spam."
+            ),
+            "success",
+        )
+
+        return redirect(
+            url_for(
+                "auth.forgot_password"
+            )
+        )
+
+    return render_template(
+        "forgot_password.html",
+        form_email="",
+        cooldown_seconds=0,
+    )
+
+
+@bp.route(
+    "/redefinir-senha/<token>",
+    methods=["GET", "POST"],
+)
+def reset_password(token):
+    if current_user.is_authenticated:
+        return redirect(
+            url_for(
+                "booking.dashboard"
+            )
+        )
+
+    user, token_error = (
+        _load_password_reset_user(
+            token
+        )
+    )
+
+    if not user:
+        if token_error == "expired":
+            flash(
+                (
+                    "O link de redefinição expirou. "
+                    "Solicite um novo."
+                ),
+                "warning",
+            )
+        else:
+            flash(
+                (
+                    "O link de redefinição é inválido "
+                    "ou já foi utilizado."
+                ),
+                "danger",
+            )
+
+        return redirect(
+            url_for(
+                "auth.forgot_password"
+            )
+        )
+
+    if request.method == "POST":
+        require_csrf()
+
+        password = request.form.get(
+            "password",
+            "",
+        )
+
+        password_confirm = (
+            request.form.get(
+                "password_confirm",
+                "",
+            )
+        )
+
+        errors = []
+
+        if len(password) < 8:
+            errors.append(
+                (
+                    "A nova senha deve ter "
+                    "pelo menos 8 caracteres."
+                )
+            )
+
+        if password != password_confirm:
+            errors.append(
+                "As senhas não coincidem."
+            )
+
+        if user.check_password(
+            password
+        ):
+            errors.append(
+                (
+                    "Escolha uma senha diferente "
+                    "da senha atual."
+                )
+            )
+
+        if errors:
+            for error in errors:
+                flash(
+                    error,
+                    "danger",
+                )
+
+            return render_template(
+                "reset_password.html",
+                token=token,
+                email=_mask_email(
+                    user.email
+                ),
+                expires_minutes=(
+                    _PASSWORD_RESET_EXPIRES_MINUTES
+                ),
+            ), 400
+
+        user.set_password(
+            password
+        )
+
+        try:
+            db.session.commit()
+
+        except Exception:
+            db.session.rollback()
+
+            current_app.logger.exception(
+                "Falha ao atualizar a senha do usuário %s.",
+                user.id,
+            )
+
+            flash(
+                (
+                    "Não foi possível redefinir a senha. "
+                    "Tente novamente."
+                ),
+                "danger",
+            )
+
+            return render_template(
+                "reset_password.html",
+                token=token,
+                email=_mask_email(
+                    user.email
+                ),
+                expires_minutes=(
+                    _PASSWORD_RESET_EXPIRES_MINUTES
+                ),
+            ), 500
+
+        # O token foi emitido com o hash da senha antiga.
+        # Depois deste commit, ele se torna inválido automaticamente.
+        session.pop(
+            _PASSWORD_RESET_SESSION_KEY,
+            None,
+        )
+
+        flash(
+            (
+                "Senha redefinida com sucesso. "
+                "Entre com sua nova senha."
+            ),
+            "success",
+        )
+
+        return redirect(
+            url_for(
+                "auth.login"
+            )
+        )
+
+    return render_template(
+        "reset_password.html",
+        token=token,
+        email=_mask_email(
+            user.email
+        ),
+        expires_minutes=(
+            _PASSWORD_RESET_EXPIRES_MINUTES
+        ),
     )
 
 
