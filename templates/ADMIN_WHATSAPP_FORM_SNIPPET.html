@@ -1,0 +1,64 @@
+<!-- Substitua a seção WhatsApp do admin.html por este bloco -->
+<section id="whatsapp" class="mb-6 rounded-[2rem] border border-emerald-400/20 bg-zinc-900/70 p-6 shadow-xl sm:p-7">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+            <span class="text-xs font-black tracking-[.15em] text-emerald-300">WHATSAPP CLOUD API</span>
+            <h2 class="mt-1 text-2xl font-black">Configuração da integração</h2>
+            <p class="mt-2 max-w-2xl text-sm leading-6 text-zinc-400">Configure confirmações e lembretes. O token nunca é exibido depois de salvo.</p>
+        </div>
+        {% if whatsapp_status.ready %}
+            <span class="w-fit rounded-full bg-emerald-400/10 px-3 py-2 text-xs font-black text-emerald-300">✓ API configurada</span>
+        {% else %}
+            <span class="w-fit rounded-full bg-amber-400/10 px-3 py-2 text-xs font-black text-amber-300">! Configuração incompleta</span>
+        {% endif %}
+    </div>
+
+    <form method="post" action="{{ url_for('admin.configure_whatsapp') }}" class="mt-6">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="grid gap-4 lg:grid-cols-2">
+            <label>
+                <span class="mb-2 block text-sm font-bold text-zinc-300">Access Token</span>
+                <input type="password" name="access_token" autocomplete="new-password" placeholder="{% if whatsapp_status.access_token %}Token já configurado — deixe vazio para manter{% else %}Cole o token da Meta{% endif %}" class="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3.5 text-white outline-none focus:border-emerald-400/50">
+            </label>
+
+            <label>
+                <span class="mb-2 block text-sm font-bold text-zinc-300">Phone Number ID</span>
+                <input name="phone_number_id" inputmode="numeric" value="{{ config.get('WHATSAPP_PHONE_NUMBER_ID', '') }}" required class="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3.5 text-white outline-none focus:border-emerald-400/50">
+            </label>
+
+            <label>
+                <span class="mb-2 block text-sm font-bold text-zinc-300">Versão Graph API</span>
+                <input name="api_version" value="{{ config.get('WHATSAPP_API_VERSION', '') }}" placeholder="vXX.X" required class="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3.5 text-white outline-none focus:border-emerald-400/50">
+            </label>
+
+            <label>
+                <span class="mb-2 block text-sm font-bold text-zinc-300">Lembrete antes do horário</span>
+                <input type="number" name="reminder_minutes" min="5" max="1440" value="{{ whatsapp_status.reminder_minutes }}" required class="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3.5 text-white outline-none focus:border-emerald-400/50">
+            </label>
+
+            <label>
+                <span class="mb-2 block text-sm font-bold text-zinc-300">Template de confirmação</span>
+                <input name="confirmation_template" value="{{ config.get('WHATSAPP_CONFIRMATION_TEMPLATE', 'agendamento_confirmado') }}" required class="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3.5 text-white outline-none focus:border-emerald-400/50">
+            </label>
+
+            <label>
+                <span class="mb-2 block text-sm font-bold text-zinc-300">Template de lembrete</span>
+                <input name="reminder_template" value="{{ config.get('WHATSAPP_REMINDER_TEMPLATE', 'lembrete_agendamento') }}" required class="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3.5 text-white outline-none focus:border-emerald-400/50">
+            </label>
+        </div>
+
+        <button type="submit" class="mt-5 rounded-2xl bg-emerald-400 px-5 py-3 font-black text-emerald-950 hover:bg-emerald-300">Salvar configuração</button>
+    </form>
+
+    <div class="my-6 border-t border-white/10"></div>
+
+    <form method="post" action="{{ url_for('admin.test_whatsapp') }}" class="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label class="flex-1">
+            <span class="mb-2 block text-sm font-bold text-zinc-300">Enviar mensagem de teste</span>
+            <input type="tel" name="test_phone" placeholder="(81) 99999-9999" required class="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3.5 text-white outline-none focus:border-emerald-400/50">
+        </label>
+        <button type="submit" class="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-5 py-3.5 font-black text-emerald-300 hover:bg-emerald-400/20">Testar API</button>
+    </form>
+</section>
