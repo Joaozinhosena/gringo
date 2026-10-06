@@ -1,0 +1,75 @@
+INTEGRAÇÃO WHATSAPP - AGENDAMENTO
+
+ARQUIVOS
+
+Substituir:
+- run.py
+- app/booking.py
+
+Adicionar:
+- app/whatsapp_models.py
+- app/whatsapp.py
+- app/whatsapp_routes.py
+- app/reminders.py
+- templates/whatsapp_settings.html
+
+Opcional:
+- templates/AGENDA_WHATSAPP_SNIPPET.html
+  Copie o conteúdo para dentro do seu agenda.html para mostrar o botão
+  "Ativar WhatsApp" diretamente na tela de agendamento.
+
+DEPENDÊNCIA
+
+pip install requests
+
+CONFIGURAÇÃO
+
+Copie as variáveis de .env.example para seu .env e preencha:
+
+WHATSAPP_ACCESS_TOKEN
+WHATSAPP_PHONE_NUMBER_ID
+WHATSAPP_API_VERSION
+
+CRIE NA META DOIS TEMPLATES DO TIPO UTILITY
+
+1) agendamento_confirmado
+
+Sugestão de corpo:
+Olá {{1}}! Seu {{2}} foi agendado para {{3}} às {{4}}.
+
+2) lembrete_agendamento
+
+Sugestão de corpo:
+Olá {{1}}! Seu {{2}} está marcado para {{3}} às {{4}}. Seu horário está próximo.
+
+Os quatro parâmetros enviados pelo código são:
+{{1}} nome do cliente
+{{2}} nome do serviço
+{{3}} data
+{{4}} horário
+
+O nome exato dos templates no .env deve ser o mesmo nome aprovado pela Meta.
+
+FLUXO
+
+1. Cliente entra em:
+   http://127.0.0.1:5000/whatsapp/configuracao
+
+2. Informa o número e marca a autorização.
+
+3. Quando um agendamento é salvo, booking.py chama
+   send_booking_confirmation().
+
+4. O worker iniciado pelo run.py verifica a cada 60 segundos
+   os atendimentos que começam dentro dos próximos 60 minutos.
+
+5. O histórico whatsapp_notifications evita envio duplicado.
+
+IMPORTANTE
+
+- O agendamento NÃO é cancelado se a API do WhatsApp falhar.
+- O sistema continua funcionando normalmente mesmo sem a API configurada.
+- Mensagens automáticas iniciadas pela empresa devem usar templates aprovados
+  conforme as regras da WhatsApp Business Platform.
+- Para implantação com múltiplos processos/servidores, rode o worker de
+  lembretes como processo separado para evitar workers duplicados.

@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Meu perfil — {{ app_name }}{% endblock %}
+
+{% block content %}
+
+<section class="mb-8">
+
+    <span class="text-xs font-black tracking-[.18em] text-barber-300">
+        MINHA CONTA
+    </span>
+
+    <h1 class="mt-3 text-4xl font-black tracking-tight sm:text-5xl">
+        Perfil
+    </h1>
+
+    <p class="mt-3 text-zinc-500">
+        Atualize seu nome e sua foto.
+    </p>
+
+</section>
+
+
+<form
+    method="post"
+    enctype="multipart/form-data"
+    class="grid gap-8 rounded-[2rem] border border-white/10 bg-zinc-900/70 p-6 shadow-xl sm:grid-cols-[170px_1fr] sm:p-8"
+>
+
+    <input
+        type="hidden"
+        name="csrf_token"
+        value="{{ csrf_token() }}"
+    >
+
+    <div>
+
+        {% if current_user.avatar %}
+
+            <img
+                src="{{ url_for('uploaded_file', filename=current_user.avatar) }}"
+                alt="Foto de perfil"
+                class="h-32 w-32 rounded-3xl border border-white/10 object-cover shadow-xl"
+            >
+
+        {% else %}
+
+            <div class="grid h-32 w-32 place-items-center rounded-3xl bg-gradient-to-br from-barber-200 to-barber-500 text-4xl font-black text-zinc-950">
+                {{ current_user.name[:1] }}
+            </div>
+
+        {% endif %}
+
+    </div>
+
+
+    <div class="max-w-2xl">
+
+        <label class="block">
+
+            <span class="mb-2 block text-sm font-black text-zinc-300">
+                Nome
+            </span>
+
+            <input
+                type="text"
+                name="name"
+                value="{{ current_user.name }}"
+                maxlength="120"
+                required
+                class="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3.5 text-white outline-none transition focus:border-barber-400/60 focus:ring-4 focus:ring-barber-400/10"
+            >
+
+        </label>
+
+
+        <label class="mt-5 block">
+
+            <span class="mb-2 block text-sm font-black text-zinc-300">
+                Foto de perfil
+            </span>
+
+            <input
+                type="file"
+                name="avatar"
+                accept="image/jpeg,image/png,image/webp"
+                class="block w-full rounded-2xl border border-white/10 bg-zinc-950/70 text-sm text-zinc-400 file:mr-4 file:border-0 file:bg-barber-400 file:px-4 file:py-3 file:font-black file:text-zinc-950 hover:file:bg-barber-300"
+            >
+
+        </label>
+
+
+        <p class="mt-3 text-sm leading-6 text-zinc-500">
+            JPG, PNG ou WEBP. A foto será recortada e otimizada automaticamente.
+        </p>
+
+
+        <button
+            type="submit"
+            class="mt-6 rounded-2xl bg-barber-400 px-5 py-3 font-black text-zinc-950 transition hover:bg-barber-300"
+        >
+            Salvar alterações
+        </button>
+
+    </div>
+
+</form>
+
+{% endblock %}

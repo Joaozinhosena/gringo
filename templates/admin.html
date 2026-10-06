@@ -1,0 +1,446 @@
+{% extends "base.html" %}
+
+{% block title %}Administração — {{ app_name }}{% endblock %}
+
+{% block content %}
+
+<section class="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+
+    <div>
+
+        <span class="text-xs font-black tracking-[.18em] text-barber-300">
+            PAINEL ADMINISTRATIVO
+        </span>
+
+        <h1 class="mt-3 text-4xl font-black tracking-tight sm:text-5xl">
+            Gestão da barbearia
+        </h1>
+
+        <p class="mt-3 text-zinc-500">
+            Profissionais, serviços, disponibilidade e agendamentos.
+        </p>
+
+    </div>
+
+    <a
+        href="{{ url_for('booking.agenda') }}"
+        class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-center text-sm font-bold transition hover:bg-white/10"
+    >
+        Visualizar agenda
+    </a>
+
+</section>
+
+
+<section class="mb-5 grid gap-4 sm:grid-cols-3">
+
+    <article class="rounded-3xl border border-white/10 bg-zinc-900/70 p-5 shadow-xl">
+
+        <div class="flex items-center justify-between">
+            <span class="text-sm text-zinc-500">Clientes</span>
+            <span class="grid h-9 w-9 place-items-center rounded-xl bg-sky-400/10 text-sky-300">👤</span>
+        </div>
+
+        <strong class="mt-4 block text-4xl font-black">
+            {{ stats.clients }}
+        </strong>
+
+    </article>
+
+
+    <article class="rounded-3xl border border-white/10 bg-zinc-900/70 p-5 shadow-xl">
+
+        <div class="flex items-center justify-between">
+            <span class="text-sm text-zinc-500">Agendados</span>
+            <span class="grid h-9 w-9 place-items-center rounded-xl bg-emerald-400/10 text-emerald-300">✓</span>
+        </div>
+
+        <strong class="mt-4 block text-4xl font-black text-emerald-300">
+            {{ stats.scheduled }}
+        </strong>
+
+    </article>
+
+
+    <article class="rounded-3xl border border-white/10 bg-zinc-900/70 p-5 shadow-xl">
+
+        <div class="flex items-center justify-between">
+            <span class="text-sm text-zinc-500">Blocos livres</span>
+            <span class="grid h-9 w-9 place-items-center rounded-xl bg-barber-400/10 text-barber-300">⏱</span>
+        </div>
+
+        <strong class="mt-4 block text-4xl font-black text-barber-300">
+            {{ stats.available_slots }}
+        </strong>
+
+    </article>
+
+</section>
+
+
+<section class="mb-5 grid gap-5 lg:grid-cols-2">
+
+    <form
+        method="post"
+        action="{{ url_for('admin.add_professional') }}"
+        class="rounded-[2rem] border border-white/10 bg-zinc-900/70 p-6 shadow-xl"
+    >
+
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="flex items-center gap-3">
+
+            <span class="grid h-10 w-10 place-items-center rounded-xl bg-barber-400/10 text-barber-300">
+                ✂
+            </span>
+
+            <div>
+                <span class="text-xs font-black tracking-[.15em] text-zinc-500">
+                    EQUIPE
+                </span>
+
+                <h2 class="text-2xl font-black">
+                    Novo profissional
+                </h2>
+            </div>
+
+        </div>
+
+
+        <label class="mt-6 block">
+
+            <span class="mb-2 block text-sm font-bold text-zinc-300">
+                Nome
+            </span>
+
+            <input
+                name="name"
+                required
+                class="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3 text-white outline-none transition focus:border-barber-400/60 focus:ring-4 focus:ring-barber-400/10"
+            >
+
+        </label>
+
+
+        <label class="mt-4 block">
+
+            <span class="mb-2 block text-sm font-bold text-zinc-300">
+                Descrição
+            </span>
+
+            <textarea
+                name="bio"
+                maxlength="300"
+                placeholder="Ex.: especialista em degradê, barba e acabamento"
+                class="min-h-24 w-full resize-y rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3 text-white outline-none transition placeholder:text-zinc-600 focus:border-barber-400/60 focus:ring-4 focus:ring-barber-400/10"
+            ></textarea>
+
+        </label>
+
+
+        <button
+            type="submit"
+            class="mt-5 rounded-2xl bg-barber-400 px-5 py-3 font-black text-zinc-950 transition hover:bg-barber-300"
+        >
+            Adicionar profissional
+        </button>
+
+    </form>
+
+
+    <form
+        method="post"
+        action="{{ url_for('admin.add_service') }}"
+        class="rounded-[2rem] border border-white/10 bg-zinc-900/70 p-6 shadow-xl"
+    >
+
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="flex items-center gap-3">
+
+            <span class="grid h-10 w-10 place-items-center rounded-xl bg-barber-400/10 text-sm font-black text-barber-300">
+                R$
+            </span>
+
+            <div>
+                <span class="text-xs font-black tracking-[.15em] text-zinc-500">
+                    CATÁLOGO
+                </span>
+
+                <h2 class="text-2xl font-black">
+                    Novo serviço
+                </h2>
+            </div>
+
+        </div>
+
+
+        <label class="mt-6 block">
+
+            <span class="mb-2 block text-sm font-bold text-zinc-300">
+                Nome
+            </span>
+
+            <input
+                name="name"
+                required
+                class="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3 text-white outline-none transition focus:border-barber-400/60 focus:ring-4 focus:ring-barber-400/10"
+            >
+
+        </label>
+
+
+        <label class="mt-4 block">
+
+            <span class="mb-2 block text-sm font-bold text-zinc-300">
+                Descrição
+            </span>
+
+            <input
+                name="description"
+                maxlength="300"
+                placeholder="Ex.: corte completo com acabamento"
+                class="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3 text-white outline-none transition placeholder:text-zinc-600 focus:border-barber-400/60 focus:ring-4 focus:ring-barber-400/10"
+            >
+
+        </label>
+
+
+        <div class="mt-4 grid gap-4 sm:grid-cols-2">
+
+            <label class="block">
+
+                <span class="mb-2 block text-sm font-bold text-zinc-300">
+                    Duração (min)
+                </span>
+
+                <input
+                    type="number"
+                    name="duration_minutes"
+                    min="10"
+                    step="5"
+                    value="30"
+                    required
+                    class="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3 text-white outline-none transition focus:border-barber-400/60 focus:ring-4 focus:ring-barber-400/10"
+                >
+
+            </label>
+
+
+            <label class="block">
+
+                <span class="mb-2 block text-sm font-bold text-zinc-300">
+                    Preço (R$)
+                </span>
+
+                <input
+                    type="number"
+                    name="price"
+                    min="0"
+                    step="0.01"
+                    value="35.00"
+                    required
+                    class="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3 text-white outline-none transition focus:border-barber-400/60 focus:ring-4 focus:ring-barber-400/10"
+                >
+
+            </label>
+
+        </div>
+
+
+        <button
+            type="submit"
+            class="mt-5 rounded-2xl bg-barber-400 px-5 py-3 font-black text-zinc-950 transition hover:bg-barber-300"
+        >
+            Adicionar serviço
+        </button>
+
+    </form>
+
+</section>
+
+
+<section class="mb-5 rounded-[2rem] border border-barber-400/20 bg-barber-400/5 p-6 shadow-xl">
+
+    <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+
+        <div>
+
+            <span class="text-xs font-black tracking-[.15em] text-barber-300">
+                AGENDA AUTOMÁTICA
+            </span>
+
+            <h2 class="mt-1 text-2xl font-black">
+                Segunda a sábado, das 07:00 às 20:00
+            </h2>
+
+            <p class="mt-2 max-w-3xl text-sm leading-6 text-zinc-400">
+                Os horários são criados automaticamente em blocos de 30 minutos.
+                O cliente só vê horários futuros e livres. Seleções temporárias de outros clientes
+                também saem da lista em tempo real.
+            </p>
+
+        </div>
+
+        <div class="rounded-2xl border border-white/10 bg-zinc-950/50 px-4 py-3 text-center">
+
+            <strong class="block text-xl text-barber-300">
+                07:00–20:00
+            </strong>
+
+            <span class="text-xs text-zinc-500">
+                domingo fechado
+            </span>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<section class="rounded-[2rem] border border-white/10 bg-zinc-900/70 p-5 shadow-xl sm:p-7">
+
+    <div class="mb-5 flex items-center justify-between gap-4">
+
+        <div>
+
+            <span class="text-xs font-black tracking-[.15em] text-zinc-500">
+                MOVIMENTAÇÃO
+            </span>
+
+            <h2 class="mt-1 text-2xl font-black">
+                Agendamentos recentes
+            </h2>
+
+        </div>
+
+        <span class="text-sm text-zinc-600">
+            até 80 registros
+        </span>
+
+    </div>
+
+
+    <div class="overflow-x-auto">
+
+        <table class="w-full min-w-[860px] text-left text-sm">
+
+            <thead class="text-xs uppercase tracking-wider text-zinc-500">
+
+                <tr class="border-b border-white/10">
+                    <th class="px-3 py-3">Data</th>
+                    <th class="px-3 py-3">Cliente</th>
+                    <th class="px-3 py-3">Profissional</th>
+                    <th class="px-3 py-3">Serviço</th>
+                    <th class="px-3 py-3">Status</th>
+                    <th class="px-3 py-3">Ação</th>
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for a in appointments %}
+
+                    <tr class="border-b border-white/5 transition hover:bg-white/[.02]">
+
+                        <td class="px-3 py-4">
+                            {{ a.start_at.strftime('%d/%m/%Y %H:%M') }}
+                        </td>
+
+                        <td class="px-3 py-4 font-semibold">
+                            {{ a.user.name }}
+                        </td>
+
+                        <td class="px-3 py-4 text-zinc-400">
+                            {{ a.professional.name }}
+                        </td>
+
+                        <td class="px-3 py-4">
+                            {{ a.service.name }}
+                        </td>
+
+                        <td class="px-3 py-4">
+
+                            {% if a.status == 'scheduled' %}
+
+                                <span class="rounded-full bg-emerald-400/10 px-2.5 py-1 text-xs font-bold text-emerald-300">
+                                    Agendado
+                                </span>
+
+                            {% elif a.status == 'cancelled' %}
+
+                                <span class="rounded-full bg-rose-400/10 px-2.5 py-1 text-xs font-bold text-rose-300">
+                                    Cancelado
+                                </span>
+
+                            {% else %}
+
+                                <span class="rounded-full bg-white/10 px-2.5 py-1 text-xs font-bold text-zinc-300">
+                                    Concluído
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+                        <td class="px-3 py-4">
+
+                            {% if a.status == 'scheduled' %}
+
+                                <form
+                                    method="post"
+                                    action="{{ url_for('admin.complete_appointment', appointment_id=a.id) }}"
+                                >
+
+                                    <input
+                                        type="hidden"
+                                        name="csrf_token"
+                                        value="{{ csrf_token() }}"
+                                    >
+
+                                    <button
+                                        type="submit"
+                                        class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold transition hover:bg-white/10"
+                                    >
+                                        Concluir
+                                    </button>
+
+                                </form>
+
+                            {% else %}
+
+                                <span class="text-zinc-600">
+                                    —
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+                    </tr>
+
+                {% else %}
+
+                    <tr>
+
+                        <td
+                            colspan="6"
+                            class="px-3 py-7 text-center text-zinc-500"
+                        >
+                            Nenhum agendamento.
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+</section>
+
+{% endblock %}

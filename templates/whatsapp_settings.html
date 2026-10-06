@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}WhatsApp — {{ app_name }}{% endblock %}
+
+{% block content %}
+
+<section class="mx-auto max-w-2xl">
+
+    <div class="mb-8">
+        <span class="text-xs font-black tracking-[.18em] text-barber-300">
+            NOTIFICAÇÕES
+        </span>
+
+        <h1 class="mt-3 text-4xl font-black tracking-tight">
+            WhatsApp
+        </h1>
+
+        <p class="mt-3 text-zinc-500">
+            Ative para receber a confirmação do agendamento e um lembrete
+            quando o horário estiver próximo.
+        </p>
+    </div>
+
+
+    {% if not whatsapp_configured %}
+
+        <div class="mb-5 rounded-2xl border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
+            O administrador ainda precisa configurar a WhatsApp Cloud API no servidor.
+            Seu número pode ser salvo agora, mas as mensagens só serão enviadas
+            depois da configuração.
+        </div>
+
+    {% endif %}
+
+
+    <form
+        method="post"
+        class="rounded-[2rem] border border-white/10 bg-zinc-900/70 p-6 sm:p-8"
+    >
+        <input
+            type="hidden"
+            name="csrf_token"
+            value="{{ csrf_token() }}"
+        >
+
+
+        <label class="block">
+            <span class="mb-2 block text-sm font-black text-zinc-300">
+                Número do WhatsApp
+            </span>
+
+            <input
+                type="tel"
+                name="phone"
+                value="{{ masked_phone }}"
+                placeholder="(81) 99999-9999"
+                autocomplete="tel"
+                class="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3.5 text-base text-white outline-none transition focus:border-barber-400/60 focus:ring-4 focus:ring-barber-400/10"
+            >
+
+            <span class="mt-2 block text-xs text-zinc-600">
+                Informe DDD + número.
+            </span>
+        </label>
+
+
+        <label class="mt-6 flex cursor-pointer items-start gap-3 rounded-2xl border border-white/10 bg-zinc-950/40 p-4">
+
+            <input
+                type="checkbox"
+                name="opt_in"
+                class="mt-1 h-5 w-5 accent-amber-400"
+                {% if preference and preference.opt_in %}checked{% endif %}
+            >
+
+            <span>
+                <strong class="block text-sm text-white">
+                    Quero receber mensagens no WhatsApp
+                </strong>
+
+                <span class="mt-1 block text-xs leading-5 text-zinc-500">
+                    O sistema poderá enviar confirmação do agendamento e
+                    lembrete do horário. Você pode desativar quando quiser.
+                </span>
+            </span>
+
+        </label>
+
+
+        <div class="mt-6 flex flex-wrap gap-3">
+
+            <button
+                type="submit"
+                class="rounded-2xl bg-barber-400 px-5 py-3 font-black text-zinc-950 transition hover:bg-barber-300"
+            >
+                Salvar configuração
+            </button>
+
+            <a
+                href="{{ url_for('booking.dashboard') }}"
+                class="rounded-2xl border border-white/10 px-5 py-3 font-bold text-zinc-300 transition hover:bg-white/5"
+            >
+                Voltar
+            </a>
+
+        </div>
+
+    </form>
+
+</section>
+
+{% endblock %}
