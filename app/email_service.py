@@ -1,6 +1,10 @@
 import html
+import json
+import os
 import smtplib
 import ssl
+import urllib.error
+import urllib.request
 from email.message import EmailMessage
 from email.utils import formataddr
 
@@ -27,17 +31,155 @@ def _required_config(name):
     return value
 
 
-def send_verification_email(
+
+
+def _send_via_resend(
     *,
     to_email,
-    customer_name,
-    code,
+    subject,
+    text_body,
+    html_body,
+    from_name,
+    from_email,
 ):
     """
-    Envia o código de confirmação usando SMTP.
+    Envia e-mail pela API HTTPS da Resend.
 
-    Funciona com Gmail e também com outros provedores SMTP,
-    desde que as variáveis MAIL_* estejam configuradas.
+    Railway Free/Trial/Hobby bloqueia SMTP, mas permite HTTPS.
+    """
+    api_key = (
+        os.getenv("RESEND_API_KEY", "")
+        or current_app.config.get(
+            "RESEND_API_KEY",
+            "",
+        )
+        or ""
+    ).strip()
+
+    if not api_key:
+        raise RuntimeError(
+            "RESEND_API_KEY não configurada."
+        )
+
+    resend_from = (
+        os.getenv("RESEND_FROM", "")
+        or current_app.config.get(
+            "RESEND_FROM",
+            "",
+        )
+        or ""
+    ).strip()
+
+    if not resend_from:
+        # Permite reaproveitar MAIL_FROM caso seja um domínio
+        # verificado no Resend.
+        resend_from = from_email
+
+    if not resend_from:
+        raise RuntimeError(
+            "RESEND_FROM não configurado."
+        )
+
+    payload = {
+        "from": (
+            f"{from_name} <{resend_from}>"
+            if "<" not in resend_from
+            else resend_from
+        ),
+        "to": [to_email],
+        "subject": subject,
+        "text": text_body,
+        "html": html_body,
+    }
+
+    request = urllib.request.Request(
+        "https://api.resend.com/emails",
+        data=json.dumps(
+            payload
+        ).encode("utf-8"),
+        headers={
+            "Authorization":
+                f"Bearer {api_key}",
+            "Content-Type":
+                "application/json",
+            "User-Agent":
+                "Gringo-Barber/1.0",
+        },
+        method="POST",
+    )
+
+    timeout = int(
+        current_app.config.get(
+            "MAIL_TIMEOUT_SECONDS",
+            20,
+        )
+    )
+
+    try:
+        with urllib.request.urlopen(
+            request,
+            timeout=timeout,
+        ) as response:
+            body = (
+                response.read()
+                .decode(
+                    "utf-8",
+                    errors="replace",
+                )
+            )
+
+            if not (
+                200
+                <= response.status
+                < 300
+            ):
+                raise RuntimeError(
+                    (
+                        "Resend retornou "
+                        f"HTTP {response.status}: "
+                        f"{body}"
+                    )
+                )
+
+            return (
+                json.loads(body)
+                if body
+                else {}
+            )
+
+    except urllib.error.HTTPError as exc:
+        body = (
+            exc.read()
+            .decode(
+                "utf-8",
+                errors="replace",
+            )
+        )
+
+        raise RuntimeError(
+            (
+                "Falha na API Resend "
+                f"(HTTP {exc.code}): "
+                f"{body}"
+            )
+        ) from exc
+
+    except urllib.error.URLError as exc:
+        raise RuntimeError(
+            (
+                "Não foi possível conectar "
+                "à API da Resend: "
+                f"{exc.reason}"
+            )
+        ) from exc
+
+
+def _send_via_smtp(
+    *,
+    message,
+):
+    """
+    SMTP para desenvolvimento local ou Railway Pro+.
     """
     server = _required_config(
         "MAIL_SERVER"
@@ -58,9 +200,154 @@ def send_verification_email(
         "MAIL_PASSWORD"
     )
 
+    timeout = int(
+        current_app.config.get(
+            "MAIL_TIMEOUT_SECONDS",
+            20,
+        )
+    )
+
+    if use_ssl:
+        context = (
+            ssl.create_default_context()
+        )
+
+        with smtplib.SMTP_SSL(
+            server,
+            port,
+            timeout=timeout,
+            context=context,
+        ) as smtp:
+            smtp.login(
+                username,
+                password,
+            )
+
+            smtp.send_message(
+                message
+            )
+
+        return
+
+    with smtplib.SMTP(
+        server,
+        port,
+        timeout=timeout,
+    ) as smtp:
+        smtp.ehlo()
+
+        if use_tls:
+            context = (
+                ssl.create_default_context()
+            )
+
+            smtp.starttls(
+                context=context
+            )
+
+            smtp.ehlo()
+
+        smtp.login(
+            username,
+            password,
+        )
+
+        smtp.send_message(
+            message
+        )
+
+
+def _deliver_email(
+    *,
+    to_email,
+    subject,
+    text_body,
+    html_body,
+    from_name,
+    from_email,
+):
+    """
+    Se RESEND_API_KEY existir, usa HTTPS/Resend.
+    Caso contrário, mantém SMTP como fallback.
+    """
+    resend_api_key = (
+        os.getenv(
+            "RESEND_API_KEY",
+            "",
+        )
+        or current_app.config.get(
+            "RESEND_API_KEY",
+            "",
+        )
+        or ""
+    ).strip()
+
+    if resend_api_key:
+        return _send_via_resend(
+            to_email=to_email,
+            subject=subject,
+            text_body=text_body,
+            html_body=html_body,
+            from_name=from_name,
+            from_email=from_email,
+        )
+
+    message = EmailMessage()
+
+    message["Subject"] = subject
+
+    message["From"] = formataddr(
+        (
+            from_name,
+            from_email,
+        )
+    )
+
+    message["To"] = to_email
+
+    message.set_content(
+        text_body
+    )
+
+    message.add_alternative(
+        html_body,
+        subtype="html",
+    )
+
+    _send_via_smtp(
+        message=message
+    )
+
+    return {}
+
+
+def send_verification_email(
+    *,
+    to_email,
+    customer_name,
+    code,
+):
+    """
+    Envia o código de confirmação usando SMTP.
+
+    Funciona com Gmail e também com outros provedores SMTP,
+    desde que as variáveis MAIL_* estejam configuradas.
+    """
+    username = (
+        current_app.config.get(
+            "MAIL_USERNAME",
+            "",
+        )
+        or ""
+    ).strip()
+
     from_email = (
         current_app.config.get(
             "MAIL_FROM",
+            "",
+        )
+        or os.getenv(
+            "RESEND_FROM",
             "",
         )
         or username
@@ -76,20 +363,6 @@ def send_verification_email(
             "Gringo du Corte",
         )
     ).strip()
-
-    use_tls = bool(
-        current_app.config.get(
-            "MAIL_USE_TLS",
-            True,
-        )
-    )
-
-    use_ssl = bool(
-        current_app.config.get(
-            "MAIL_USE_SSL",
-            False,
-        )
-    )
 
     app_name = (
         current_app.config.get(
@@ -172,81 +445,14 @@ Se você não iniciou este cadastro, ignore este e-mail.
 </html>
 """
 
-    message = EmailMessage()
-
-    message["Subject"] = subject
-
-    message["From"] = formataddr(
-        (
-            from_name,
-            from_email,
-        )
+    return _deliver_email(
+        to_email=to_email,
+        subject=subject,
+        text_body=text_body,
+        html_body=html_body,
+        from_name=from_name,
+        from_email=from_email,
     )
-
-    message["To"] = to_email
-
-    message.set_content(
-        text_body
-    )
-
-    message.add_alternative(
-        html_body,
-        subtype="html",
-    )
-
-    timeout = int(
-        current_app.config.get(
-            "MAIL_TIMEOUT_SECONDS",
-            20,
-        )
-    )
-
-    if use_ssl:
-        context = ssl.create_default_context()
-
-        with smtplib.SMTP_SSL(
-            server,
-            port,
-            timeout=timeout,
-            context=context,
-        ) as smtp:
-            smtp.login(
-                username,
-                password,
-            )
-
-            smtp.send_message(
-                message
-            )
-
-        return
-
-    with smtplib.SMTP(
-        server,
-        port,
-        timeout=timeout,
-    ) as smtp:
-        smtp.ehlo()
-
-        if use_tls:
-            context = (
-                ssl.create_default_context()
-            )
-
-            smtp.starttls(
-                context=context
-            )
-
-            smtp.ehlo()
-
-        smtp.login(
-            username,
-            password,
-        )
-
-        smtp.send_message(
-            message
-        )
 
 
 def send_password_reset_email(
@@ -261,28 +467,21 @@ def send_password_reset_email(
 
     O link é validado pelo Flask e expira automaticamente.
     """
-    server = _required_config(
-        "MAIL_SERVER"
-    )
-
-    port = int(
+    username = (
         current_app.config.get(
-            "MAIL_PORT",
-            587,
+            "MAIL_USERNAME",
+            "",
         )
-    )
-
-    username = _required_config(
-        "MAIL_USERNAME"
-    )
-
-    password = _required_config(
-        "MAIL_PASSWORD"
-    )
+        or ""
+    ).strip()
 
     from_email = (
         current_app.config.get(
             "MAIL_FROM",
+            "",
+        )
+        or os.getenv(
+            "RESEND_FROM",
             "",
         )
         or username
@@ -298,20 +497,6 @@ def send_password_reset_email(
             "Gringo Barber",
         )
     ).strip()
-
-    use_tls = bool(
-        current_app.config.get(
-            "MAIL_USE_TLS",
-            True,
-        )
-    )
-
-    use_ssl = bool(
-        current_app.config.get(
-            "MAIL_USE_SSL",
-            False,
-        )
-    )
 
     app_name = (
         current_app.config.get(
@@ -405,79 +590,12 @@ Se você não solicitou a redefinição, ignore este e-mail.
 </html>
 """
 
-    message = EmailMessage()
-
-    message["Subject"] = subject
-
-    message["From"] = formataddr(
-        (
-            from_name,
-            from_email,
-        )
+    return _deliver_email(
+        to_email=to_email,
+        subject=subject,
+        text_body=text_body,
+        html_body=html_body,
+        from_name=from_name,
+        from_email=from_email,
     )
-
-    message["To"] = to_email
-
-    message.set_content(
-        text_body
-    )
-
-    message.add_alternative(
-        html_body,
-        subtype="html",
-    )
-
-    timeout = int(
-        current_app.config.get(
-            "MAIL_TIMEOUT_SECONDS",
-            20,
-        )
-    )
-
-    if use_ssl:
-        context = ssl.create_default_context()
-
-        with smtplib.SMTP_SSL(
-            server,
-            port,
-            timeout=timeout,
-            context=context,
-        ) as smtp:
-            smtp.login(
-                username,
-                password,
-            )
-
-            smtp.send_message(
-                message
-            )
-
-        return
-
-    with smtplib.SMTP(
-        server,
-        port,
-        timeout=timeout,
-    ) as smtp:
-        smtp.ehlo()
-
-        if use_tls:
-            context = (
-                ssl.create_default_context()
-            )
-
-            smtp.starttls(
-                context=context
-            )
-
-            smtp.ehlo()
-
-        smtp.login(
-            username,
-            password,
-        )
-
-        smtp.send_message(
-            message
-        )
 
