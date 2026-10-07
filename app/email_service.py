@@ -33,7 +33,7 @@ def _required_config(name):
 
 
 
-def _send_via_resend(
+def _send_via_brevo(
     *,
     to_email,
     subject,
@@ -43,14 +43,18 @@ def _send_via_resend(
     from_email,
 ):
     """
-    Envia e-mail pela API HTTPS da Resend.
+    Envia e-mail pela API HTTPS da Brevo.
 
-    Railway Free/Trial/Hobby bloqueia SMTP, mas permite HTTPS.
+    Não usa SMTP e funciona em hospedagens que bloqueiam
+    as portas 25, 465 e 587.
     """
     api_key = (
-        os.getenv("RESEND_API_KEY", "")
+        os.getenv(
+            "BREVO_API_KEY",
+            "",
+        )
         or current_app.config.get(
-            "RESEND_API_KEY",
+            "BREVO_API_KEY",
             "",
         )
         or ""
@@ -58,52 +62,80 @@ def _send_via_resend(
 
     if not api_key:
         raise RuntimeError(
-            "RESEND_API_KEY não configurada."
+            "BREVO_API_KEY não configurada."
         )
 
-    resend_from = (
-        os.getenv("RESEND_FROM", "")
-        or current_app.config.get(
-            "RESEND_FROM",
+    brevo_from = (
+        os.getenv(
+            "BREVO_FROM",
             "",
         )
+        or current_app.config.get(
+            "BREVO_FROM",
+            "",
+        )
+        or from_email
         or ""
     ).strip()
 
-    if not resend_from:
-        # Permite reaproveitar MAIL_FROM caso seja um domínio
-        # verificado no Resend.
-        resend_from = from_email
-
-    if not resend_from:
+    if (
+        not brevo_from
+        or "@" not in brevo_from
+        or brevo_from.startswith("@")
+        or brevo_from.endswith("@")
+    ):
         raise RuntimeError(
-            "RESEND_FROM não configurado."
+            (
+                "BREVO_FROM inválido. "
+                "Use um endereço de e-mail completo "
+                "e previamente verificado na Brevo."
+            )
         )
 
+    brevo_from_name = (
+        os.getenv(
+            "BREVO_FROM_NAME",
+            "",
+        )
+        or current_app.config.get(
+            "BREVO_FROM_NAME",
+            "",
+        )
+        or from_name
+        or "Gringo Barber"
+    ).strip()
+
     payload = {
-        "from": (
-            f"{from_name} <{resend_from}>"
-            if "<" not in resend_from
-            else resend_from
-        ),
-        "to": [to_email],
+        "sender": {
+            "name": brevo_from_name,
+            "email": brevo_from,
+        },
+        "to": [
+            {
+                "email": to_email,
+            }
+        ],
         "subject": subject,
-        "text": text_body,
-        "html": html_body,
+        "htmlContent": html_body,
+        "textContent": text_body,
     }
 
+    current_app.logger.info(
+        "Brevo: remetente=%s destinatário=%s",
+        brevo_from,
+        to_email,
+    )
+
     request = urllib.request.Request(
-        "https://api.resend.com/emails",
+        "https://api.brevo.com/v3/smtp/email",
         data=json.dumps(
             payload
         ).encode("utf-8"),
         headers={
-            "Authorization":
-                f"Bearer {api_key}",
-            "Content-Type":
-                "application/json",
-            "User-Agent":
-                "Gringo-Barber/1.0",
+            "accept": "application/json",
+            "api-key": api_key,
+            "content-type": "application/json",
+            "user-agent": "Gringo-Barber/1.0",
         },
         method="POST",
     )
@@ -135,17 +167,26 @@ def _send_via_resend(
             ):
                 raise RuntimeError(
                     (
-                        "Resend retornou "
+                        "Brevo retornou "
                         f"HTTP {response.status}: "
                         f"{body}"
                     )
                 )
 
-            return (
+            result = (
                 json.loads(body)
                 if body
                 else {}
             )
+
+            current_app.logger.info(
+                "Brevo aceitou o e-mail. messageId=%s",
+                result.get("messageId")
+                if isinstance(result, dict)
+                else None,
+            )
+
+            return result
 
     except urllib.error.HTTPError as exc:
         body = (
@@ -156,19 +197,30 @@ def _send_via_resend(
             )
         )
 
+        current_app.logger.error(
+            "Brevo recusou o envio: HTTP %s - %s",
+            exc.code,
+            body,
+        )
+
         raise RuntimeError(
             (
-                "Falha na API Resend "
+                "Falha na API Brevo "
                 f"(HTTP {exc.code}): "
                 f"{body}"
             )
         ) from exc
 
     except urllib.error.URLError as exc:
+        current_app.logger.error(
+            "Falha de conexão com a Brevo: %s",
+            exc.reason,
+        )
+
         raise RuntimeError(
             (
                 "Não foi possível conectar "
-                "à API da Resend: "
+                "à API da Brevo: "
                 f"{exc.reason}"
             )
         ) from exc
@@ -198,6 +250,20 @@ def _send_via_smtp(
 
     password = _required_config(
         "MAIL_PASSWORD"
+    )
+
+    use_tls = bool(
+        current_app.config.get(
+            "MAIL_USE_TLS",
+            True,
+        )
+    )
+
+    use_ssl = bool(
+        current_app.config.get(
+            "MAIL_USE_SSL",
+            False,
+        )
     )
 
     timeout = int(
@@ -257,6 +323,77 @@ def _send_via_smtp(
         )
 
 
+def _selected_email_provider():
+    """
+    Define o provedor de e-mail.
+
+    EMAIL_PROVIDER=smtp  -> Gmail/SMTP
+    EMAIL_PROVIDER=brevo -> Brevo via HTTPS
+
+    Se EMAIL_PROVIDER não estiver definido:
+    - Railway + BREVO_API_KEY -> Brevo
+    - ambiente local -> SMTP
+    """
+    explicit = (
+        os.getenv(
+            "EMAIL_PROVIDER",
+            "",
+        )
+        or current_app.config.get(
+            "EMAIL_PROVIDER",
+            "",
+        )
+        or ""
+    ).strip().lower()
+
+    if explicit:
+        if explicit not in {
+            "smtp",
+            "brevo",
+        }:
+            raise RuntimeError(
+                (
+                    "EMAIL_PROVIDER inválido: "
+                    f"{explicit!r}. "
+                    "Use 'smtp' ou 'brevo'."
+                )
+            )
+
+        return explicit
+
+    is_railway = any(
+        os.getenv(name)
+        for name in (
+            "RAILWAY_PROJECT_ID",
+            "RAILWAY_SERVICE_ID",
+            "RAILWAY_ENVIRONMENT",
+            "RAILWAY_ENVIRONMENT_ID",
+            "RAILWAY_PUBLIC_DOMAIN",
+            "RAILWAY_PRIVATE_DOMAIN",
+        )
+    )
+
+    brevo_api_key = (
+        os.getenv(
+            "BREVO_API_KEY",
+            "",
+        )
+        or current_app.config.get(
+            "BREVO_API_KEY",
+            "",
+        )
+        or ""
+    ).strip()
+
+    if (
+        is_railway
+        and brevo_api_key
+    ):
+        return "brevo"
+
+    return "smtp"
+
+
 def _deliver_email(
     *,
     to_email,
@@ -267,23 +404,24 @@ def _deliver_email(
     from_email,
 ):
     """
-    Se RESEND_API_KEY existir, usa HTTPS/Resend.
-    Caso contrário, mantém SMTP como fallback.
-    """
-    resend_api_key = (
-        os.getenv(
-            "RESEND_API_KEY",
-            "",
-        )
-        or current_app.config.get(
-            "RESEND_API_KEY",
-            "",
-        )
-        or ""
-    ).strip()
+    Envia por SMTP ou Brevo conforme EMAIL_PROVIDER.
 
-    if resend_api_key:
-        return _send_via_resend(
+    Localmente o padrão é SMTP.
+    No Railway, se não houver EMAIL_PROVIDER explícito e houver
+    BREVO_API_KEY, o padrão passa a ser Brevo.
+    """
+    provider = (
+        _selected_email_provider()
+    )
+
+    current_app.logger.info(
+        "Enviando e-mail via %s para %s.",
+        provider,
+        to_email,
+    )
+
+    if provider == "brevo":
+        return _send_via_brevo(
             to_email=to_email,
             subject=subject,
             text_body=text_body,
@@ -328,10 +466,10 @@ def send_verification_email(
     code,
 ):
     """
-    Envia o código de confirmação usando SMTP.
+    Envia o código de confirmação pelo provedor configurado.
 
-    Funciona com Gmail e também com outros provedores SMTP,
-    desde que as variáveis MAIL_* estejam configuradas.
+    Localmente pode usar Gmail SMTP.
+    Em produção/Railway pode usar Brevo via HTTPS.
     """
     username = (
         current_app.config.get(
@@ -347,7 +485,7 @@ def send_verification_email(
             "",
         )
         or os.getenv(
-            "RESEND_FROM",
+            "BREVO_FROM",
             "",
         )
         or username
@@ -481,7 +619,7 @@ def send_password_reset_email(
             "",
         )
         or os.getenv(
-            "RESEND_FROM",
+            "BREVO_FROM",
             "",
         )
         or username

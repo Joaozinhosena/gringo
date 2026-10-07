@@ -1,0 +1,25 @@
+# Segredos
+.env
+.env.*
+!.env.example
+
+# Ambientes virtuais
+venv/
+venv2/
+.venv/
+
+# Python
+__pycache__/
+*.pyc
+
+# Banco local
+instance/*.db
+instance/*.sqlite
+instance/*.sqlite3
+
+# Uploads
+instance/uploads/
+
+# IDE
+.vscode/
+.idea/
