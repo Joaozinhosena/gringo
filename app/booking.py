@@ -3,6 +3,7 @@ from threading import Lock
 
 from flask import (
     Blueprint,
+    abort,
     current_app,
     flash,
     jsonify,
@@ -19,40 +20,36 @@ from .models import (
     Professional,
     PushSubscription,
     Service,
+    User,
 )
 from .push import send_push_to_user
 from .utils import require_csrf
 
 
-bp = Blueprint(
-    "booking",
-    __name__,
-)
+bp = Blueprint("booking", __name__)
 
 
 # ============================================================
 # CONFIGURAÇÃO DA AGENDA
 # ============================================================
 
-# Horário comercial da barbearia.
 BUSINESS_TZ = timezone(
     timedelta(hours=-3),
     name="America/Recife",
 )
 
-OPEN_TIME = time(7, 0)
-CLOSE_TIME = time(20, 0)
+# Expediente solicitado: 09:00 às 19:30.
+# O atendimento precisa terminar até 19:30.
+OPEN_TIME = time(9, 0)
+CLOSE_TIME = time(19, 30)
 
-# Horários começam de 30 em 30 minutos.
+# Inícios de horário a cada 30 minutos.
 SLOT_STEP_MINUTES = 30
 
-# Registro interno usado apenas porque Appointment ainda possui
-# professional_id no banco/modelo.
-#
-# IMPORTANTE:
-# o cliente NÃO escolhe profissional.
-# O profissional NÃO participa mais da regra de disponibilidade.
+# Nome usado por versões antigas como recurso técnico de agenda.
+# Ele não deve aparecer para o cliente como barbeiro selecionável.
 INTERNAL_RESOURCE_NAME = "Gringo Barber"
+INTERNAL_RESOURCE_BIO_MARKER = "Registro interno da agenda"
 
 WEEKDAY_LABELS = {
     0: "Seg",
@@ -63,7 +60,7 @@ WEEKDAY_LABELS = {
     5: "Sáb",
 }
 
-# Evita duas confirmações simultâneas no mesmo processo Flask.
+# Evita confirmação simultânea dentro do mesmo processo Flask.
 _booking_lock = Lock()
 
 
@@ -72,300 +69,138 @@ _booking_lock = Lock()
 # ============================================================
 
 def local_now():
-    """
-    Horário atual da barbearia.
-
-    O projeto trabalha com datetimes sem tzinfo no SQLite.
-    Por isso convertemos para UTC-3 e removemos tzinfo.
-    """
-    return (
-        datetime
-        .now(BUSINESS_TZ)
-        .replace(tzinfo=None)
-    )
+    """Retorna o horário local da barbearia como datetime sem tzinfo."""
+    return datetime.now(BUSINESS_TZ).replace(tzinfo=None)
 
 
 def is_business_day(day):
+    """Segunda a sábado. Domingo fechado."""
+    return day.weekday() <= 5
+
+
+def active_week_range(reference_date=None):
     """
-    Segunda a sábado.
-    Domingo fechado.
-    """
-    return (
-        day.weekday()
-        <= 5
-    )
-
-
-def active_week_range(
-    reference_date=None,
-):
-    """
-    Retorna a única semana disponível para reserva.
-
-    Segunda a sábado:
-        semana atual.
-
-    Domingo:
-        próxima semana.
+    Segunda a sábado: semana atual.
+    Domingo: abre automaticamente a semana seguinte.
     """
     if reference_date is None:
-        reference_date = (
-            local_now()
-            .date()
-        )
+        reference_date = local_now().date()
 
-    # Domingo.
-    if (
-        reference_date.weekday()
-        == 6
-    ):
-        monday = (
-            reference_date
-            + timedelta(days=1)
-        )
-
+    if reference_date.weekday() == 6:
+        monday = reference_date + timedelta(days=1)
     else:
-        monday = (
-            reference_date
-            - timedelta(
-                days=reference_date.weekday()
-            )
-        )
+        monday = reference_date - timedelta(days=reference_date.weekday())
 
-    saturday = (
-        monday
-        + timedelta(days=5)
-    )
+    return monday, monday + timedelta(days=5)
+
+
+# ============================================================
+# PROFISSIONAIS
+# ============================================================
+
+def is_internal_resource(professional):
+    """Identifica o recurso técnico criado pela versão sem escolha de barbeiro."""
+    if not professional:
+        return False
 
     return (
-        monday,
-        saturday,
+        professional.name == INTERNAL_RESOURCE_NAME
+        and INTERNAL_RESOURCE_BIO_MARKER.lower()
+        in (professional.bio or "").lower()
     )
 
 
-# ============================================================
-# RECURSO INTERNO DA AGENDA
-# ============================================================
-
-def get_booking_resource():
-    """
-    Retorna um registro interno de Professional.
-
-    O sistema antigo permitia escolher profissional.
-    Essa escolha foi removida.
-
-    O modelo Appointment ainda exige professional_id, então
-    mantemos UM registro somente para compatibilidade com o banco.
-
-    A disponibilidade é global e NÃO é filtrada por profissional.
-    """
-
-    # Prioriza um registro com o nome interno.
-    resource = (
+def get_active_professionals():
+    """Lista somente profissionais ativos e realmente selecionáveis."""
+    professionals = (
         Professional.query
-        .filter_by(
-            name=INTERNAL_RESOURCE_NAME,
-        )
-        .order_by(
-            Professional.id.asc()
-        )
-        .first()
+        .filter_by(active=True)
+        .order_by(Professional.name.asc(), Professional.id.asc())
+        .all()
     )
 
-    if resource:
-        if not resource.active:
-            resource.active = True
+    return [
+        professional
+        for professional in professionals
+        if not is_internal_resource(professional)
+    ]
 
-            try:
-                db.session.commit()
 
-            except Exception:
-                db.session.rollback()
+def get_selectable_professional(professional_id):
+    professional = db.session.get(Professional, professional_id)
 
-                current_app.logger.exception(
-                    "Não foi possível reativar o recurso interno da agenda."
-                )
-
-                return None
-
-        return resource
-
-    # Compatibilidade com bancos antigos:
-    # se já houver algum profissional, reutiliza o primeiro
-    # em vez de criar registros duplicados.
-    resource = (
-        Professional.query
-        .order_by(
-            Professional.id.asc()
-        )
-        .first()
-    )
-
-    if resource:
-        if not resource.active:
-            resource.active = True
-
-            try:
-                db.session.commit()
-
-            except Exception:
-                db.session.rollback()
-
-                current_app.logger.exception(
-                    "Não foi possível ativar o recurso interno da agenda."
-                )
-
-                return None
-
-        return resource
-
-    # Banco novo / sem profissionais:
-    # cria automaticamente o registro técnico.
-    resource = Professional(
-        name=INTERNAL_RESOURCE_NAME,
-        bio=(
-            "Registro interno da agenda. "
-            "Não é selecionado pelo cliente."
-        ),
-        active=True,
-    )
-
-    db.session.add(
-        resource
-    )
-
-    try:
-        db.session.commit()
-
-    except Exception:
-        db.session.rollback()
-
-        current_app.logger.exception(
-            "Não foi possível criar o recurso interno da agenda."
-        )
-
+    if (
+        not professional
+        or not professional.active
+        or is_internal_resource(professional)
+    ):
         return None
 
-    return resource
+    return professional
 
 
 # ============================================================
 # REGRA: UM AGENDAMENTO ATIVO POR CLIENTE
 # ============================================================
 
-def get_active_user_appointment(
-    user_id,
-):
-    """
-    Retorna o agendamento ainda ativo do cliente.
-
-    Um agendamento permanece ativo enquanto:
-    - status == scheduled;
-    - ainda não terminou.
-    """
+def get_active_user_appointment(user_id):
     now = local_now()
 
     return (
         Appointment.query
         .filter(
-            Appointment.user_id
-            == user_id,
-
-            Appointment.status
-            == "scheduled",
-
-            Appointment.end_at
-            > now,
+            Appointment.user_id == user_id,
+            Appointment.status == "scheduled",
+            Appointment.end_at > now,
         )
-        .order_by(
-            Appointment.start_at.asc()
-        )
+        .order_by(Appointment.start_at.asc())
         .first()
     )
 
 
 # ============================================================
-# DISPONIBILIDADE
+# DISPONIBILIDADE POR PROFISSIONAL
 # ============================================================
 
-def scheduled_appointments_for_day(
-    selected_date,
-):
-    """
-    Retorna todos os horários ocupados do estabelecimento naquele dia.
-
-    Não filtra profissional.
-
-    Agora existe uma agenda única da barbearia.
-    """
-    day_start = datetime.combine(
-        selected_date,
-        time.min,
-    )
-
-    day_end = (
-        day_start
-        + timedelta(days=1)
-    )
+def scheduled_appointments_for_day(professional_id, selected_date):
+    day_start = datetime.combine(selected_date, time.min)
+    day_end = day_start + timedelta(days=1)
 
     return (
         Appointment.query
         .filter(
-            Appointment.status
-            == "scheduled",
-
-            Appointment.start_at
-            < day_end,
-
-            Appointment.end_at
-            > day_start,
+            Appointment.professional_id == professional_id,
+            Appointment.status == "scheduled",
+            Appointment.start_at < day_end,
+            Appointment.end_at > day_start,
         )
-        .order_by(
-            Appointment.start_at.asc()
-        )
+        .order_by(Appointment.start_at.asc())
         .all()
     )
 
 
-def periods_overlap(
-    start_at,
-    end_at,
-    appointment,
-):
-    """
-    Verifica colisão entre dois períodos.
-    """
+def periods_overlap(start_at, end_at, appointment):
     return (
-        start_at
-        < appointment.end_at
-
-        and
-
-        end_at
-        > appointment.start_at
+        start_at < appointment.end_at
+        and end_at > appointment.start_at
     )
 
 
-def build_available_times(
-    service,
-    selected_date,
-):
+def build_available_times(service, professional, selected_date):
     """
-    Gera virtualmente os horários disponíveis.
+    Gera os horários livres daquele profissional.
 
     Regras:
     - segunda a sábado;
-    - 07:00 às 20:00;
-    - início de 30 em 30 minutos;
-    - respeita duração real do serviço;
-    - serviço deve terminar até 20:00;
+    - abre às 09:00;
+    - fecha às 19:30;
+    - inícios de 30 em 30 minutos;
+    - respeita a duração real do serviço;
+    - o serviço deve terminar até 19:30;
     - não mostra horários passados;
-    - não mostra horários que colidem;
-    - NÃO existe seleção de profissional.
+    - ignora conflitos de OUTROS profissionais.
     """
-    if not is_business_day(
-        selected_date
-    ):
+    if not is_business_day(selected_date):
         return []
 
     if (
@@ -373,139 +208,69 @@ def build_available_times(
         or not service.active
         or not service.duration_minutes
         or service.duration_minutes <= 0
+        or not professional
+        or not professional.active
     ):
         return []
 
     now = local_now()
+    opening = datetime.combine(selected_date, OPEN_TIME)
+    closing = datetime.combine(selected_date, CLOSE_TIME)
 
-    opening = datetime.combine(
+    appointments = scheduled_appointments_for_day(
+        professional.id,
         selected_date,
-        OPEN_TIME,
-    )
-
-    closing = datetime.combine(
-        selected_date,
-        CLOSE_TIME,
-    )
-
-    appointments = (
-        scheduled_appointments_for_day(
-            selected_date
-        )
     )
 
     available = []
-
     cursor = opening
 
     while cursor < closing:
+        end_at = cursor + timedelta(minutes=service.duration_minutes)
 
-        end_at = (
-            cursor
-            + timedelta(
-                minutes=(
-                    service
-                    .duration_minutes
-                )
-            )
-        )
-
-        # Se já ultrapassa o fechamento,
-        # nenhum horário posterior será válido.
         if end_at > closing:
             break
 
-        # Somente horários futuros.
         if cursor > now:
-
             occupied = any(
-                periods_overlap(
-                    cursor,
-                    end_at,
-                    appointment,
-                )
-                for appointment
-                in appointments
+                periods_overlap(cursor, end_at, appointment)
+                for appointment in appointments
             )
 
             if not occupied:
                 available.append(
                     {
-                        "start_at":
-                            cursor.strftime(
-                                "%Y-%m-%dT%H:%M"
-                            ),
-
-                        "start":
-                            cursor.strftime(
-                                "%H:%M"
-                            ),
-
-                        "end":
-                            end_at.strftime(
-                                "%H:%M"
-                            ),
+                        "start_at": cursor.strftime("%Y-%m-%dT%H:%M"),
+                        "start": cursor.strftime("%H:%M"),
+                        "end": end_at.strftime("%H:%M"),
                     }
                 )
 
-        cursor += timedelta(
-            minutes=SLOT_STEP_MINUTES
-        )
+        cursor += timedelta(minutes=SLOT_STEP_MINUTES)
 
     return available
 
 
-def validate_requested_time(
-    start_at,
-    service,
-):
-    """
-    Revalida no servidor o horário recebido pelo cliente.
-
-    Nunca depende apenas do JavaScript.
-    """
+def validate_requested_time(start_at, service):
     now = local_now()
 
     if start_at <= now:
-        return (
-            "Esse horário já passou."
-        )
+        return "Esse horário já passou."
 
-    if not is_business_day(
-        start_at.date()
-    ):
-        return (
-            "A barbearia não abre aos domingos."
-        )
+    if not is_business_day(start_at.date()):
+        return "A barbearia não abre aos domingos."
 
-    week_start, week_end = (
-        active_week_range(
-            now.date()
-        )
-    )
+    week_start, week_end = active_week_range(now.date())
 
-    if not (
-        week_start
-        <= start_at.date()
-        <= week_end
-    ):
-        return (
-            "Esse horário não pertence à semana disponível."
-        )
+    if not (week_start <= start_at.date() <= week_end):
+        return "Esse horário não pertence à semana disponível."
 
-    # Grade de 30 minutos.
     if (
-        start_at.minute
-        % SLOT_STEP_MINUTES
-        != 0
-
+        start_at.minute % SLOT_STEP_MINUTES != 0
         or start_at.second != 0
-
         or start_at.microsecond != 0
     ):
-        return (
-            "Horário inválido."
-        )
+        return "Horário inválido."
 
     if (
         not service
@@ -513,66 +278,29 @@ def validate_requested_time(
         or not service.duration_minutes
         or service.duration_minutes <= 0
     ):
-        return (
-            "Serviço inválido ou indisponível."
-        )
+        return "Serviço inválido ou indisponível."
 
-    opening = datetime.combine(
-        start_at.date(),
-        OPEN_TIME,
-    )
+    opening = datetime.combine(start_at.date(), OPEN_TIME)
+    closing = datetime.combine(start_at.date(), CLOSE_TIME)
+    end_at = start_at + timedelta(minutes=service.duration_minutes)
 
-    closing = datetime.combine(
-        start_at.date(),
-        CLOSE_TIME,
-    )
-
-    end_at = (
-        start_at
-        + timedelta(
-            minutes=(
-                service
-                .duration_minutes
-            )
-        )
-    )
-
-    if (
-        start_at < opening
-        or end_at > closing
-    ):
-        return (
-            "Esse horário está fora do expediente."
-        )
+    if start_at < opening or end_at > closing:
+        return "Esse horário está fora do expediente."
 
     return None
 
 
-def find_schedule_conflict(
-    start_at,
-    end_at,
-):
-    """
-    Procura qualquer atendimento ativo que colida.
-
-    Não considera profissional.
-    A agenda da barbearia é única.
-    """
+def find_schedule_conflict(professional_id, start_at, end_at):
+    """Procura conflito somente na agenda do profissional escolhido."""
     return (
         Appointment.query
         .filter(
-            Appointment.status
-            == "scheduled",
-
-            Appointment.start_at
-            < end_at,
-
-            Appointment.end_at
-            > start_at,
+            Appointment.professional_id == professional_id,
+            Appointment.status == "scheduled",
+            Appointment.start_at < end_at,
+            Appointment.end_at > start_at,
         )
-        .order_by(
-            Appointment.start_at.asc()
-        )
+        .order_by(Appointment.start_at.asc())
         .first()
     )
 
@@ -583,20 +311,13 @@ def find_schedule_conflict(
 
 @bp.get("/")
 def index():
-
     services = (
         Service.query
-        .filter_by(
-            active=True
-        )
-        .order_by(
-            Service.price_cents.asc(),
-            Service.name.asc(),
-        )
+        .filter_by(active=True)
+        .order_by(Service.price_cents.asc(), Service.name.asc())
         .all()
     )
 
-    # Nenhuma lista de profissionais é enviada ao template.
     return render_template(
         "index.html",
         services=services,
@@ -610,17 +331,9 @@ def index():
 @bp.get("/agendar")
 @login_required
 def agenda():
-
-    # Regra do sistema:
-    # uma conta só pode ter um atendimento ativo.
-    active_appointment = (
-        get_active_user_appointment(
-            current_user.id
-        )
-    )
+    active_appointment = get_active_user_appointment(current_user.id)
 
     if active_appointment:
-
         flash(
             (
                 "Você já possui um agendamento ativo para "
@@ -629,37 +342,39 @@ def agenda():
             ),
             "warning",
         )
-
-        return redirect(
-            url_for(
-                "booking.dashboard"
-            )
-        )
+        return redirect(url_for("booking.dashboard"))
 
     services = (
         Service.query
-        .filter_by(
-            active=True
-        )
-        .order_by(
-            Service.name.asc()
-        )
+        .filter_by(active=True)
+        .order_by(Service.name.asc())
         .all()
     )
 
-    # O template atual ainda verifica has_professional.
-    # Mantemos o campo apenas por compatibilidade visual.
-    # O cliente NÃO escolhe profissional.
-    resource = (
-        get_booking_resource()
-    )
+    professionals = get_active_professionals()
 
     return render_template(
         "agenda.html",
         services=services,
-        has_professional=bool(
-            resource
-        ),
+        professionals=professionals,
+        has_professional=bool(professionals),
+    )
+
+
+# ============================================================
+# PERFIL PÚBLICO DO CLIENTE
+# ============================================================
+
+@bp.get("/perfil/<int:user_id>")
+def public_profile(user_id):
+    user = db.session.get(User, user_id)
+
+    if not user or user.role != "client":
+        abort(404)
+
+    return render_template(
+        "public_profile.html",
+        profile_user=user,
     )
 
 
@@ -670,36 +385,23 @@ def agenda():
 @bp.get("/dashboard")
 @login_required
 def dashboard():
-
     now = local_now()
 
     upcoming = (
         Appointment.query
         .filter(
-            Appointment.user_id
-            == current_user.id,
-
-            Appointment.status
-            == "scheduled",
-
-            Appointment.end_at
-            > now,
+            Appointment.user_id == current_user.id,
+            Appointment.status == "scheduled",
+            Appointment.end_at > now,
         )
-        .order_by(
-            Appointment.start_at.asc()
-        )
+        .order_by(Appointment.start_at.asc())
         .all()
     )
 
     history = (
         Appointment.query
-        .filter(
-            Appointment.user_id
-            == current_user.id,
-        )
-        .order_by(
-            Appointment.start_at.desc()
-        )
+        .filter(Appointment.user_id == current_user.id)
+        .order_by(Appointment.start_at.desc())
         .limit(50)
         .all()
     )
@@ -718,219 +420,90 @@ def dashboard():
 @bp.get("/api/painel-agenda")
 @login_required
 def schedule_panel():
-    """
-    Retorna a semana ativa e os horários livres.
-
-    Entrada:
-        service_id
-
-    NÃO aceita:
-        professional_id
-
-    O sistema antigo de escolha de profissional foi removido.
-    """
-
-    active_appointment = (
-        get_active_user_appointment(
-            current_user.id
-        )
-    )
+    """Retorna os horários livres para serviço + profissional."""
+    active_appointment = get_active_user_appointment(current_user.id)
 
     if active_appointment:
-
         return jsonify(
             {
                 "ok": False,
-
-                "error":
-                    (
-                        "Você já possui um agendamento ativo."
-                    ),
-
+                "error": "Você já possui um agendamento ativo.",
                 "active_appointment": {
-                    "id":
-                        active_appointment.id,
-
-                    "date":
-                        active_appointment
-                        .start_at
-                        .strftime(
-                            "%d/%m/%Y"
-                        ),
-
-                    "start":
-                        active_appointment
-                        .start_at
-                        .strftime(
-                            "%H:%M"
-                        ),
-
-                    "end":
-                        active_appointment
-                        .end_at
-                        .strftime(
-                            "%H:%M"
-                        ),
+                    "id": active_appointment.id,
+                    "date": active_appointment.start_at.strftime("%d/%m/%Y"),
+                    "start": active_appointment.start_at.strftime("%H:%M"),
+                    "end": active_appointment.end_at.strftime("%H:%M"),
                 },
             }
         ), 409
 
-    service_id = request.args.get(
-        "service_id",
-        type=int,
-    )
+    service_id = request.args.get("service_id", type=int)
+    professional_id = request.args.get("professional_id", type=int)
 
     if not service_id:
+        return jsonify({"ok": False, "error": "Selecione um serviço."}), 400
 
-        return jsonify(
-            {
-                "ok": False,
-                "error":
-                    "Nenhum serviço foi selecionado.",
-            }
-        ), 400
+    if not professional_id:
+        return jsonify({"ok": False, "error": "Selecione um profissional."}), 400
 
-    service = db.session.get(
-        Service,
-        service_id,
-    )
+    service = db.session.get(Service, service_id)
+    professional = get_selectable_professional(professional_id)
 
-    if (
-        not service
-        or not service.active
-    ):
+    if not service or not service.active:
+        return jsonify({"ok": False, "error": "Serviço indisponível."}), 404
 
-        return jsonify(
-            {
-                "ok": False,
-                "error":
-                    "Serviço não encontrado ou inativo.",
-            }
-        ), 404
-
-    # Garante somente o registro técnico
-    # necessário ao foreign key de Appointment.
-    if not get_booking_resource():
-
-        return jsonify(
-            {
-                "ok": False,
-                "error":
-                    (
-                        "A agenda não pôde ser inicializada. "
-                        "Tente novamente."
-                    ),
-            }
-        ), 500
+    if not professional:
+        return jsonify({"ok": False, "error": "Profissional indisponível."}), 404
 
     now = local_now()
-
-    week_start, week_end = (
-        active_week_range(
-            now.date()
-        )
-    )
+    week_start, week_end = active_week_range(now.date())
 
     days = []
-
     cursor_date = week_start
 
-    while (
-        cursor_date
-        <= week_end
-    ):
-
-        slots = (
-            build_available_times(
-                service,
-                cursor_date,
-            )
-        )
-
+    while cursor_date <= week_end:
         days.append(
             {
-                "date":
-                    cursor_date.isoformat(),
-
-                "weekday":
-                    WEEKDAY_LABELS[
-                        cursor_date.weekday()
-                    ],
-
-                "label":
-                    cursor_date.strftime(
-                        "%d/%m"
-                    ),
-
-                "full_label":
-                    cursor_date.strftime(
-                        "%d/%m/%Y"
-                    ),
-
-                "slots":
-                    slots,
+                "date": cursor_date.isoformat(),
+                "weekday": WEEKDAY_LABELS[cursor_date.weekday()],
+                "label": cursor_date.strftime("%d/%m"),
+                "full_label": cursor_date.strftime("%d/%m/%Y"),
+                "slots": build_available_times(
+                    service,
+                    professional,
+                    cursor_date,
+                ),
             }
         )
-
-        cursor_date += timedelta(
-            days=1
-        )
+        cursor_date += timedelta(days=1)
 
     return jsonify(
         {
             "ok": True,
-
-            "days":
-                days,
-
+            "days": days,
             "week": {
-                "start":
-                    week_start.strftime(
-                        "%d/%m/%Y"
-                    ),
-
-                "end":
-                    week_end.strftime(
-                        "%d/%m/%Y"
-                    ),
+                "start": week_start.strftime("%d/%m/%Y"),
+                "end": week_end.strftime("%d/%m/%Y"),
             },
-
             "service": {
-                "id":
-                    service.id,
-
-                "name":
-                    service.name,
-
-                "duration":
-                    service.duration_minutes,
-
-                "price_cents":
-                    service.price_cents,
+                "id": service.id,
+                "name": service.name,
+                "duration": service.duration_minutes,
+                "price_cents": service.price_cents,
             },
-
+            "professional": {
+                "id": professional.id,
+                "name": professional.name,
+                "bio": professional.bio or "",
+            },
             "business_hours": {
-                "open":
-                    OPEN_TIME.strftime(
-                        "%H:%M"
-                    ),
-
-                "close":
-                    CLOSE_TIME.strftime(
-                        "%H:%M"
-                    ),
+                "open": OPEN_TIME.strftime("%H:%M"),
+                "close": CLOSE_TIME.strftime("%H:%M"),
             },
-
-            # Informação útil para o frontend.
             "rules": {
-                "single_active_booking":
-                    True,
-
-                "professional_selection":
-                    False,
-
-                "slot_step_minutes":
-                    SLOT_STEP_MINUTES,
+                "single_active_booking": True,
+                "professional_selection": True,
+                "slot_step_minutes": SLOT_STEP_MINUTES,
             },
         }
     )
@@ -944,288 +517,139 @@ def schedule_panel():
 @login_required
 def quick_book():
     """
-    Cria um agendamento.
-
-    O cliente envia apenas:
+    Espera JSON:
         service_id
-        start_at
-
-    professional_id é ignorado/rejeitado.
+        professional_id
+        start_at  (YYYY-MM-DDTHH:MM)
     """
-
     require_csrf()
 
-    data = (
-        request.get_json(
-            silent=True
-        )
-        or {}
-    )
-
-    # Remove definitivamente a API antiga.
-    if (
-        "professional_id"
-        in data
-
-        or "professional"
-        in data
-    ):
-        return jsonify(
-            {
-                "ok": False,
-
-                "error":
-                    (
-                        "A seleção de profissional foi removida. "
-                        "Envie apenas serviço e horário."
-                    ),
-            }
-        ), 400
+    data = request.get_json(silent=True) or {}
 
     try:
-
-        service_id = int(
-            data.get(
-                "service_id"
-            )
-        )
-
+        service_id = int(data.get("service_id"))
+        professional_id = int(data.get("professional_id"))
         start_at = datetime.strptime(
-            str(
-                data.get(
-                    "start_at"
-                )
-            ),
+            str(data.get("start_at")),
             "%Y-%m-%dT%H:%M",
         )
-
-    except (
-        TypeError,
-        ValueError,
-    ):
-
+    except (TypeError, ValueError):
         return jsonify(
             {
                 "ok": False,
-
-                "error":
-                    "Dados do agendamento inválidos.",
+                "error": "Dados do agendamento inválidos.",
             }
         ), 400
 
-    service = db.session.get(
-        Service,
-        service_id,
-    )
+    service = db.session.get(Service, service_id)
+    professional = get_selectable_professional(professional_id)
 
-    if (
-        not service
-        or not service.active
-    ):
+    if not service or not service.active:
+        return jsonify({"ok": False, "error": "Serviço indisponível."}), 404
 
-        return jsonify(
-            {
-                "ok": False,
+    if not professional:
+        return jsonify({"ok": False, "error": "Profissional indisponível."}), 404
 
-                "error":
-                    "Serviço indisponível.",
-            }
-        ), 404
-
-    validation_error = (
-        validate_requested_time(
-            start_at,
-            service,
-        )
-    )
-
+    validation_error = validate_requested_time(start_at, service)
     if validation_error:
+        return jsonify({"ok": False, "error": validation_error}), 409
 
-        return jsonify(
-            {
-                "ok": False,
-                "error":
-                    validation_error,
-            }
-        ), 409
+    end_at = start_at + timedelta(minutes=service.duration_minutes)
 
-    end_at = (
-        start_at
-        + timedelta(
-            minutes=(
-                service
-                .duration_minutes
-            )
-        )
-    )
-
-    # A confirmação é revalidada dentro do lock
-    # para evitar clique duplo / concorrência local.
     with _booking_lock:
-
-        # Regra:
-        # uma conta = um atendimento ativo.
-        active_appointment = (
-            get_active_user_appointment(
-                current_user.id
-            )
-        )
+        active_appointment = get_active_user_appointment(current_user.id)
 
         if active_appointment:
-
             return jsonify(
                 {
                     "ok": False,
-
-                    "error":
-                        (
-                            "Você já possui um agendamento ativo."
-                        ),
-
+                    "error": "Você já possui um agendamento ativo.",
                     "active_appointment": {
-                        "id":
-                            active_appointment.id,
-
-                        "date":
-                            active_appointment
-                            .start_at
-                            .strftime(
-                                "%d/%m/%Y"
-                            ),
-
-                        "start":
-                            active_appointment
-                            .start_at
-                            .strftime(
-                                "%H:%M"
-                            ),
+                        "id": active_appointment.id,
+                        "date": active_appointment.start_at.strftime("%d/%m/%Y"),
+                        "start": active_appointment.start_at.strftime("%H:%M"),
                     },
                 }
             ), 409
 
-        # Revalida colisão imediatamente
-        # antes do INSERT.
-        conflict = (
-            find_schedule_conflict(
-                start_at,
-                end_at,
-            )
+        # Revalida o profissional e o serviço dentro do lock.
+        service = db.session.get(Service, service_id)
+        professional = get_selectable_professional(professional_id)
+
+        if not service or not service.active:
+            return jsonify({"ok": False, "error": "Serviço indisponível."}), 404
+
+        if not professional:
+            return jsonify({"ok": False, "error": "Profissional indisponível."}), 404
+
+        validation_error = validate_requested_time(start_at, service)
+        if validation_error:
+            return jsonify({"ok": False, "error": validation_error}), 409
+
+        end_at = start_at + timedelta(minutes=service.duration_minutes)
+
+        conflict = find_schedule_conflict(
+            professional.id,
+            start_at,
+            end_at,
         )
 
         if conflict:
-
             return jsonify(
                 {
                     "ok": False,
-
-                    "error":
-                        (
-                            "Outro cliente reservou esse horário primeiro. "
-                            "Escolha outro horário."
-                        ),
+                    "error": (
+                        f"{professional.name} acabou de receber outro agendamento "
+                        "nesse horário. Escolha outro horário."
+                    ),
                 }
             ), 409
 
-        resource = (
-            get_booking_resource()
-        )
-
-        if not resource:
-
-            return jsonify(
-                {
-                    "ok": False,
-
-                    "error":
-                        (
-                            "Não foi possível inicializar a agenda."
-                        ),
-                }
-            ), 500
-
         appointment = Appointment(
             user_id=current_user.id,
-
-            # Campo mantido somente porque o banco ainda exige.
-            professional_id=resource.id,
-
+            professional_id=professional.id,
             service_id=service.id,
-
             start_at=start_at,
-
             end_at=end_at,
-
             status="scheduled",
+            lembrete_enviado=False,
         )
 
-        db.session.add(
-            appointment
-        )
+        db.session.add(appointment)
 
         try:
             db.session.commit()
-
         except Exception:
-
             db.session.rollback()
-
-            current_app.logger.exception(
-                "Erro ao criar agendamento."
-            )
-
+            current_app.logger.exception("Erro ao criar agendamento.")
             return jsonify(
                 {
                     "ok": False,
-
-                    "error":
-                        (
-                            "Não foi possível concluir o agendamento. "
-                            "Tente novamente."
-                        ),
+                    "error": "Não foi possível concluir o agendamento. Tente novamente.",
                 }
             ), 500
-
-    # ========================================================
-    # EVENTOS / NOTIFICAÇÕES
-    # ========================================================
 
     socketio.emit(
         "schedule_changed",
         {
-            "date":
-                start_at.strftime(
-                    "%Y-%m-%d"
-                ),
-
-            "actor_user_id":
-                current_user.id,
-
-            "reason":
-                "appointment_created",
+            "professional_id": professional.id,
+            "date": start_at.strftime("%Y-%m-%d"),
+            "actor_user_id": current_user.id,
+            "reason": "appointment_created",
         },
     )
 
-    # Push não pode derrubar o agendamento.
     try:
-
         send_push_to_user(
             current_user.id,
-
-            current_app.config.get(
-                "APP_NAME",
-                "Gringo Barber",
-            ),
-
+            current_app.config.get("APP_NAME", "Gringo Barber"),
             (
-                "Agendamento confirmado para "
+                f"Agendamento com {professional.name} confirmado para "
                 f"{start_at.strftime('%d/%m às %H:%M')}."
             ),
-
             "/dashboard",
         )
-
     except Exception:
-
         current_app.logger.exception(
             "Falha ao enviar push do agendamento %s.",
             appointment.id,
@@ -1234,30 +658,17 @@ def quick_book():
     return jsonify(
         {
             "ok": True,
-
-            "appointment_id":
-                appointment.id,
-
-            "date":
-                start_at.strftime(
-                    "%d/%m/%Y"
-                ),
-
-            "start":
-                start_at.strftime(
-                    "%H:%M"
-                ),
-
-            "end":
-                end_at.strftime(
-                    "%H:%M"
-                ),
-
-            "service":
-                service.name,
-
-            "price_cents":
-                service.price_cents,
+            "appointment_id": appointment.id,
+            "date": start_at.strftime("%d/%m/%Y"),
+            "start": start_at.strftime("%H:%M"),
+            "end": end_at.strftime("%H:%M"),
+            "service": service.name,
+            "price_cents": service.price_cents,
+            "professional": {
+                "id": professional.id,
+                "name": professional.name,
+            },
+            "is_vip": bool(getattr(current_user, "is_vip", False)),
         }
     ), 201
 
@@ -1266,150 +677,68 @@ def quick_book():
 # CANCELAMENTO DO CLIENTE
 # ============================================================
 
-@bp.post(
-    "/agendamento/<int:appointment_id>/cancelar"
-)
+@bp.post("/agendamento/<int:appointment_id>/cancelar")
 @login_required
-def cancel_appointment(
-    appointment_id,
-):
-
+def cancel_appointment(appointment_id):
     require_csrf()
 
-    appointment = db.session.get(
-        Appointment,
-        appointment_id,
-    )
+    appointment = db.session.get(Appointment, appointment_id)
 
     if not appointment:
-
-        flash(
-            "Agendamento não encontrado.",
-            "danger",
-        )
-
-        return redirect(
-            url_for(
-                "booking.dashboard"
-            )
-        )
+        flash("Agendamento não encontrado.", "danger")
+        return redirect(url_for("booking.dashboard"))
 
     if (
-        appointment.user_id
-        != current_user.id
-
-        and not getattr(
-            current_user,
-            "is_admin",
-            False,
-        )
+        appointment.user_id != current_user.id
+        and not getattr(current_user, "is_admin", False)
     ):
+        return "Acesso negado.", 403
 
-        return (
-            "Acesso negado.",
-            403,
-        )
-
-    if (
-        appointment.status
-        != "scheduled"
-    ):
-
-        flash(
-            (
-                "Esse agendamento não pode mais ser cancelado."
-            ),
-            "warning",
-        )
-
-        return redirect(
-            url_for(
-                "booking.dashboard"
-            )
-        )
+    if appointment.status != "scheduled":
+        flash("Esse agendamento não pode mais ser cancelado.", "warning")
+        return redirect(url_for("booking.dashboard"))
 
     now = local_now()
 
-    if (
-        appointment.start_at
-        <= now
-    ):
-
+    if appointment.start_at <= now:
         flash(
-            (
-                "Não é possível cancelar um atendimento "
-                "que já começou."
-            ),
+            "Não é possível cancelar um atendimento que já começou.",
             "warning",
         )
+        return redirect(url_for("booking.dashboard"))
 
-        return redirect(
-            url_for(
-                "booking.dashboard"
-            )
-        )
-
-    appointment.status = (
-        "cancelled"
-    )
+    appointment.status = "cancelled"
 
     try:
         db.session.commit()
-
     except Exception:
-
         db.session.rollback()
-
         current_app.logger.exception(
             "Erro ao cancelar agendamento %s.",
             appointment_id,
         )
-
         flash(
-            (
-                "Não foi possível cancelar o agendamento. "
-                "Tente novamente."
-            ),
+            "Não foi possível cancelar o agendamento. Tente novamente.",
             "danger",
         )
-
-        return redirect(
-            url_for(
-                "booking.dashboard"
-            )
-        )
+        return redirect(url_for("booking.dashboard"))
 
     socketio.emit(
         "schedule_changed",
         {
-            "date":
-                appointment
-                .start_at
-                .strftime(
-                    "%Y-%m-%d"
-                ),
-
-            "actor_user_id":
-                current_user.id,
-
-            "reason":
-                "appointment_cancelled",
+            "professional_id": appointment.professional_id,
+            "date": appointment.start_at.strftime("%Y-%m-%d"),
+            "actor_user_id": current_user.id,
+            "reason": "appointment_cancelled",
         },
     )
 
     flash(
-        (
-            "Agendamento cancelado. "
-            "O horário voltou a ficar disponível."
-        ),
+        "Agendamento cancelado. O horário voltou a ficar disponível.",
         "success",
     )
 
-    return redirect(
-        url_for(
-            "booking.dashboard"
-        )
-    )
+    return redirect(url_for("booking.dashboard"))
 
 
 # ============================================================
@@ -1419,139 +748,47 @@ def cancel_appointment(
 @bp.post("/api/push/subscribe")
 @login_required
 def push_subscribe():
-
     require_csrf()
 
-    data = (
-        request.get_json(
-            silent=True
-        )
-        or {}
-    )
+    data = request.get_json(silent=True) or {}
+    endpoint = data.get("endpoint")
+    keys = data.get("keys") or {}
+    p256dh = keys.get("p256dh")
+    auth = keys.get("auth")
 
-    endpoint = (
-        data.get(
-            "endpoint"
-        )
-    )
-
-    keys = (
-        data.get(
-            "keys"
-        )
-        or {}
-    )
-
-    p256dh = (
-        keys.get(
-            "p256dh"
-        )
-    )
-
-    auth = (
-        keys.get(
-            "auth"
-        )
-    )
-
-    if (
-        not endpoint
-        or not p256dh
-        or not auth
-    ):
-
+    if not endpoint or not p256dh or not auth:
         return jsonify(
             {
                 "ok": False,
-
-                "error":
-                    "Assinatura de notificação inválida.",
+                "error": "Assinatura de notificação inválida.",
             }
         ), 400
 
-    subscription = (
-        PushSubscription.query
-        .filter_by(
-            endpoint=endpoint
-        )
-        .first()
-    )
+    subscription = PushSubscription.query.filter_by(endpoint=endpoint).first()
 
     if not subscription:
-
-        subscription = (
-            PushSubscription(
-                user_id=current_user.id,
-                endpoint=endpoint,
-                p256dh=p256dh,
-                auth=auth,
-            )
+        subscription = PushSubscription(
+            user_id=current_user.id,
+            endpoint=endpoint,
+            p256dh=p256dh,
+            auth=auth,
         )
-
-        db.session.add(
-            subscription
-        )
-
+        db.session.add(subscription)
     else:
-
-        subscription.user_id = (
-            current_user.id
-        )
-
-        subscription.p256dh = (
-            p256dh
-        )
-
-        subscription.auth = (
-            auth
-        )
+        subscription.user_id = current_user.id
+        subscription.p256dh = p256dh
+        subscription.auth = auth
 
     try:
         db.session.commit()
-
     except Exception:
-
         db.session.rollback()
-
-        current_app.logger.exception(
-            "Erro ao salvar assinatura push."
-        )
-
+        current_app.logger.exception("Erro ao salvar assinatura push.")
         return jsonify(
             {
                 "ok": False,
-
-                "error":
-                    (
-                        "Não foi possível ativar as notificações."
-                    ),
+                "error": "Não foi possível ativar as notificações.",
             }
         ), 500
 
-    return jsonify(
-        {
-            "ok": True,
-        }
-    )
-
-
-# ============================================================
-# COMPATIBILIDADE / OBSERVAÇÕES
-# ============================================================
-
-# Não existem mais rotas como:
-#
-# /api/profissionais
-# /api/horarios?professional_id=...
-#
-# Também não é necessário enviar professional_id ao agendar.
-#
-# Fluxo atual:
-#
-# 1. cliente escolhe serviço;
-# 2. backend calcula horários livres da agenda única;
-# 3. cliente escolhe horário;
-# 4. backend revalida conflitos;
-# 5. backend garante um único agendamento ativo por conta;
-# 6. professional_id é preenchido internamente somente para
-#    manter compatibilidade com o modelo/banco atual.
+    return jsonify({"ok": True})

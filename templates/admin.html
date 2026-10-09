@@ -78,13 +78,7 @@
         class="mt-6 flex gap-2 overflow-x-auto pb-2 text-sm font-bold text-zinc-400"
     >
 
-        <a
-            href="#resumo"
-            class="shrink-0 rounded-xl border border-white/10 bg-white/[.03] px-3 py-2 hover:bg-white/10 hover:text-white"
-        >
-            Resumo
-        </a>
-
+        
 
         <a
             href="{{ url_for('admin_stats.statistics') }}"
@@ -101,10 +95,19 @@
         </a>
 
         <a
-            href="#agenda"
-            class="shrink-0 rounded-xl border border-white/10 bg-white/[.03] px-3 py-2 hover:bg-white/10 hover:text-white"
+            href="#profissionais"
+            class="shrink-0 rounded-xl border border-sky-400/15 bg-sky-400/5 px-3 py-2 font-black text-sky-300 hover:bg-sky-400/10"
         >
-            Agenda
+            Profissionais
+        </a>
+
+      
+
+        <a
+            href="#clientes-vip"
+            class="shrink-0 rounded-xl border border-amber-400/20 bg-amber-400/5 px-3 py-2 font-black text-amber-300 hover:bg-amber-400/10"
+        >
+            ★ Clientes VIP
         </a>
 
         <a
@@ -132,7 +135,7 @@
 
 <section
     id="resumo"
-    class="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+    class="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5"
 >
 
     <!-- CLIENTES -->
@@ -147,11 +150,6 @@
                 Clientes
             </span>
 
-            <span
-                class="grid h-10 w-10 place-items-center rounded-2xl bg-sky-400/10 text-sky-300"
-            >
-                👤
-            </span>
 
         </div>
 
@@ -180,12 +178,7 @@
                 Agendados
             </span>
 
-            <span
-                class="grid h-10 w-10 place-items-center rounded-2xl bg-emerald-400/10 font-black text-emerald-300"
-            >
-                ✓
-            </span>
-
+           
         </div>
 
 
@@ -198,166 +191,63 @@
             atendimentos ativos
         </span>
 
-    </article>
-
-
-    <!-- LIVRES -->
-
-    <article
-        class="rounded-3xl border border-white/10 bg-zinc-900/70 p-5 shadow-xl"
-    >
-
-        <div class="flex items-center justify-between">
-
-            <span class="text-sm text-zinc-500">
-                Horários livres
-            </span>
-
-            <span
-                class="grid h-10 w-10 place-items-center rounded-2xl bg-barber-400/10 text-barber-300"
-            >
-                ⏱
-            </span>
-
-        </div>
-
-
-        <strong class="mt-5 block text-4xl font-black text-barber-300">
-            {{ stats.available_slots }}
-        </strong>
-
-
-        <span class="mt-1 block text-xs text-zinc-600">
-            disponibilidade calculada
-        </span>
-
-    </article>
-
-
-    <!-- REGISTROS -->
-
-    <article
-        class="rounded-3xl border border-white/10 bg-zinc-900/70 p-5 shadow-xl"
-    >
-
-        <div class="flex items-center justify-between">
-
-            <span class="text-sm text-zinc-500">
-                Registros recentes
-            </span>
-
-            <span
-                class="grid h-10 w-10 place-items-center rounded-2xl bg-violet-400/10 text-violet-300"
-            >
-                ≡
-            </span>
-
-        </div>
-
-
-        <strong class="mt-5 block text-4xl font-black text-violet-300">
-            {{ appointments|length }}
-        </strong>
-
-
-        <span class="mt-1 block text-xs text-zinc-600">
-            exibidos no painel
-        </span>
-
-    </article>
-
+   
 </section>
 
 
 <!-- ====================================================== -->
-<!-- CADASTROS -->
+<!-- CATÁLOGO / SERVIÇOS -->
 <!-- ====================================================== -->
 
-<section class="mb-6">
-
-
-    <!-- SERVIÇO -->
+<section
+    id="catalogo"
+    class="mb-6 grid gap-5 lg:grid-cols-[380px_1fr]"
+>
 
     <form
-        id="catalogo"
         method="post"
         action="{{ url_for('admin.add_service') }}"
         class="rounded-[2rem] border border-white/10 bg-zinc-900/70 p-6 shadow-xl"
     >
 
-        <input
-            type="hidden"
-            name="csrf_token"
-            value="{{ csrf_token() }}"
-        >
-
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         <div class="flex items-center gap-3">
-
-            <span
-                class="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-400/10 text-sm font-black text-emerald-300"
-            >
+            <span class="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-400/10 text-sm font-black text-emerald-300">
                 R$
             </span>
 
-
             <div>
-
-                <span
-                    class="text-xs font-black tracking-[.15em] text-zinc-500"
-                >
+                <span class="text-xs font-black tracking-[.15em] text-zinc-500">
                     CATÁLOGO
                 </span>
-
-                <h2 class="text-2xl font-black">
-                    Novo serviço
-                </h2>
-
+                <h2 class="text-2xl font-black">Novo serviço</h2>
             </div>
-
         </div>
 
-
         <label class="mt-6 block">
-
-            <span class="mb-2 block text-sm font-bold text-zinc-300">
-                Nome
-            </span>
-
+            <span class="mb-2 block text-sm font-bold text-zinc-300">Nome</span>
             <input
                 name="name"
                 required
                 placeholder="Ex.: Corte degradê"
                 class="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3.5 text-white outline-none focus:border-barber-400/60 focus:ring-4 focus:ring-barber-400/10"
             >
-
         </label>
 
-
         <label class="mt-4 block">
-
-            <span class="mb-2 block text-sm font-bold text-zinc-300">
-                Descrição
-            </span>
-
+            <span class="mb-2 block text-sm font-bold text-zinc-300">Descrição</span>
             <input
                 name="description"
                 maxlength="300"
                 placeholder="Descrição do serviço"
                 class="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3.5 text-white outline-none focus:border-barber-400/60 focus:ring-4 focus:ring-barber-400/10"
             >
-
         </label>
 
-
         <div class="mt-4 grid gap-4 sm:grid-cols-2">
-
             <label>
-
-                <span class="mb-2 block text-sm font-bold text-zinc-300">
-                    Duração
-                </span>
-
+                <span class="mb-2 block text-sm font-bold text-zinc-300">Duração</span>
                 <input
                     type="number"
                     name="duration_minutes"
@@ -368,16 +258,10 @@
                     required
                     class="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3.5 text-white outline-none"
                 >
-
             </label>
 
-
             <label>
-
-                <span class="mb-2 block text-sm font-bold text-zinc-300">
-                    Preço
-                </span>
-
+                <span class="mb-2 block text-sm font-bold text-zinc-300">Preço</span>
                 <input
                     type="number"
                     name="price"
@@ -387,20 +271,218 @@
                     required
                     class="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3.5 text-white outline-none"
                 >
-
             </label>
-
         </div>
-
 
         <button
             type="submit"
-            class="mt-5 rounded-2xl bg-barber-400 px-5 py-3.5 font-black text-zinc-950 hover:bg-barber-300"
+            class="mt-5 w-full rounded-2xl bg-barber-400 px-5 py-3.5 font-black text-zinc-950 hover:bg-barber-300"
         >
             Adicionar serviço
         </button>
-
     </form>
+
+    <div class="rounded-[2rem] border border-white/10 bg-zinc-900/70 p-6 shadow-xl">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <span class="text-xs font-black tracking-[.15em] text-zinc-500">CADASTRADOS</span>
+                <h2 class="mt-1 text-2xl font-black">Serviços da barbearia</h2>
+            </div>
+
+            <span class="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-black text-zinc-400">
+                {{ services|length }} serviço{% if services|length != 1 %}s{% endif %}
+            </span>
+        </div>
+
+        <p class="mt-3 text-xs leading-5 text-zinc-600">
+            Ao remover um serviço que já possui atendimentos registrados, ele sai da agenda,
+            mas o histórico dos clientes é mantido.
+        </p>
+
+        <div class="mt-5 space-y-3">
+            {% for service in services %}
+                <article class="flex flex-col gap-4 rounded-2xl border border-white/10 bg-zinc-950/40 p-4 xl:flex-row xl:items-center xl:justify-between">
+                    <div class="min-w-0">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <strong class="text-white">{{ service.name }}</strong>
+
+                            {% if service.active %}
+                                <span class="rounded-full bg-emerald-400/10 px-2.5 py-1 text-[10px] font-black uppercase text-emerald-300">Ativo</span>
+                            {% else %}
+                                <span class="rounded-full bg-zinc-400/10 px-2.5 py-1 text-[10px] font-black uppercase text-zinc-500">Inativo</span>
+                            {% endif %}
+                        </div>
+
+                        <span class="mt-1 block text-xs font-bold text-zinc-500">
+                            {{ service.duration_minutes }} min · {{ service.price_cents|money }}
+                        </span>
+
+                        {% if service.description %}
+                            <span class="mt-1 block text-xs leading-5 text-zinc-600">{{ service.description }}</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="flex flex-wrap gap-2">
+                        <form method="post" action="{{ url_for('admin.toggle_service', service_id=service.id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button
+                                type="submit"
+                                class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-black transition hover:bg-white/10 {% if service.active %}text-amber-300{% else %}text-emerald-300{% endif %}"
+                            >
+                                {% if service.active %}Desativar{% else %}Ativar{% endif %}
+                            </button>
+                        </form>
+
+                        <form
+                            method="post"
+                            action="{{ url_for('admin.remove_service', service_id=service.id) }}"
+                            onsubmit="return confirm('Remover este serviço? Se ele possuir histórico de atendimentos, será retirado da agenda sem apagar os registros antigos.');"
+                        >
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button
+                                type="submit"
+                                class="rounded-xl border border-red-400/20 bg-red-400/5 px-3 py-2 text-xs font-black text-red-300 transition hover:bg-red-400/10"
+                            >
+                                Remover
+                            </button>
+                        </form>
+                    </div>
+                </article>
+            {% else %}
+                <div class="rounded-2xl border border-dashed border-white/10 p-6 text-center text-sm font-bold text-zinc-600">
+                    Nenhum serviço cadastrado.
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</section>
+
+
+<!-- ====================================================== -->
+<!-- PROFISSIONAIS -->
+<!-- ====================================================== -->
+
+<section
+    id="profissionais"
+    class="mb-6 grid gap-5 lg:grid-cols-[380px_1fr]"
+>
+
+    <form
+        method="post"
+        action="{{ url_for('admin.add_professional') }}"
+        class="rounded-[2rem] border border-sky-400/15 bg-zinc-900/70 p-6 shadow-xl"
+    >
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <span class="text-xs font-black tracking-[.15em] text-sky-300">
+            EQUIPE
+        </span>
+
+        <h2 class="mt-1 text-2xl font-black">
+            Novo profissional
+        </h2>
+
+        <p class="mt-2 text-sm leading-6 text-zinc-500">
+            Profissionais ativos aparecem para o cliente na tela de agendamento.
+        </p>
+
+        <label class="mt-5 block">
+            <span class="mb-2 block text-sm font-bold text-zinc-300">Nome</span>
+            <input
+                name="name"
+                required
+                minlength="2"
+                maxlength="120"
+                placeholder="Ex.: João"
+                class="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3.5 text-white outline-none focus:border-sky-400/60 focus:ring-4 focus:ring-sky-400/10"
+            >
+        </label>
+
+        <label class="mt-4 block">
+            <span class="mb-2 block text-sm font-bold text-zinc-300">Descrição</span>
+            <textarea
+                name="bio"
+                maxlength="300"
+                rows="3"
+                placeholder="Ex.: Especialista em degradê e barba"
+                class="w-full resize-none rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3.5 text-white outline-none focus:border-sky-400/60 focus:ring-4 focus:ring-sky-400/10"
+            ></textarea>
+        </label>
+
+        <button
+            type="submit"
+            class="mt-5 w-full rounded-2xl bg-sky-300 px-5 py-3.5 font-black text-sky-950 transition hover:bg-sky-200"
+        >
+            Adicionar profissional
+        </button>
+    </form>
+
+    <div class="rounded-[2rem] border border-white/10 bg-zinc-900/70 p-6 shadow-xl">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <span class="text-xs font-black tracking-[.15em] text-zinc-500">CADASTRADOS</span>
+                <h2 class="mt-1 text-2xl font-black">Equipe da agenda</h2>
+            </div>
+            <span class="rounded-full border border-emerald-400/15 bg-emerald-400/5 px-3 py-2 text-xs font-black text-emerald-300">
+                {{ stats.active_professionals }} ativo{% if stats.active_professionals != 1 %}s{% endif %}
+            </span>
+        </div>
+
+        <p class="mt-3 text-xs leading-5 text-zinc-600">
+            Se o profissional já possuir agendamentos ou registros antigos, o botão Remover o retira da agenda sem apagar o histórico.
+        </p>
+
+        <div class="mt-5 space-y-3">
+            {% for professional in professionals %}
+                <article class="flex flex-col gap-4 rounded-2xl border border-white/10 bg-zinc-950/40 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="min-w-0">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <strong class="text-white">{{ professional.name }}</strong>
+                            {% if professional.active %}
+                                <span class="rounded-full bg-emerald-400/10 px-2.5 py-1 text-[10px] font-black uppercase text-emerald-300">Ativo</span>
+                            {% else %}
+                                <span class="rounded-full bg-zinc-400/10 px-2.5 py-1 text-[10px] font-black uppercase text-zinc-500">Inativo</span>
+                            {% endif %}
+                        </div>
+                        {% if professional.bio %}
+                            <span class="mt-1 block text-xs leading-5 text-zinc-600">{{ professional.bio }}</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="flex flex-wrap gap-2">
+                        <form method="post" action="{{ url_for('admin.toggle_professional', professional_id=professional.id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button
+                                type="submit"
+                                class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-black transition hover:bg-white/10 {% if professional.active %}text-amber-300{% else %}text-emerald-300{% endif %}"
+                            >
+                                {% if professional.active %}Desativar{% else %}Ativar{% endif %}
+                            </button>
+                        </form>
+
+                        <form
+                            method="post"
+                            action="{{ url_for('admin.remove_professional', professional_id=professional.id) }}"
+                            onsubmit="return confirm('Remover este profissional? Se ele possuir histórico ou horários antigos, será retirado da agenda sem apagar os registros.');"
+                        >
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button
+                                type="submit"
+                                class="rounded-xl border border-red-400/20 bg-red-400/5 px-3 py-2 text-xs font-black text-red-300 transition hover:bg-red-400/10"
+                            >
+                                Remover
+                            </button>
+                        </form>
+                    </div>
+                </article>
+            {% else %}
+                <div class="rounded-2xl border border-dashed border-white/10 p-6 text-center text-sm font-bold text-zinc-600">
+                    Nenhum profissional cadastrado. Adicione o primeiro para liberar a agenda.
+                </div>
+            {% endfor %}
+        </div>
+    </div>
 
 </section>
 
@@ -426,7 +508,7 @@
 
 
             <h2 class="mt-2 text-2xl font-black">
-                Segunda a sábado · 07:00 às 20:00
+                Segunda a sábado · 09:00 às 19:30
             </h2>
 
 
@@ -455,6 +537,10 @@
                     1 agendamento ativo por cliente
                 </span>
 
+                <span class="rounded-xl border border-sky-400/10 bg-sky-400/5 px-3 py-2 text-xs font-bold text-sky-300">
+                    Agenda separada por profissional
+                </span>
+
             </div>
 
         </div>
@@ -473,10 +559,249 @@
                 <strong
                     class="mt-2 block text-3xl font-black text-barber-300"
                 >
-                    07–20h
+                    09–19h30
                 </strong>
 
             </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- ====================================================== -->
+<!-- CLIENTES VIP -->
+<!-- ====================================================== -->
+
+<section
+    id="clientes-vip"
+    class="mb-6 rounded-[2rem] border border-amber-400/20 bg-zinc-900/70 p-5 shadow-xl sm:p-7"
+>
+
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+
+        <div>
+            <span class="text-xs font-black tracking-[.15em] text-amber-300">
+                ★ PROGRAMA VIP
+            </span>
+
+            <h2 class="mt-1 text-2xl font-black">
+                Clientes VIP
+            </h2>
+
+            <p class="mt-2 max-w-2xl text-sm leading-6 text-zinc-500">
+                Pesquise um cliente pelo nome ou e-mail e marque a conta como VIP.
+                O selo será exibido no perfil e nos agendamentos.
+            </p>
+        </div>
+
+        <span class="w-fit rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs font-black text-amber-300">
+            {{ stats.vip_clients }} VIP{% if stats.vip_clients != 1 %}s{% endif %}
+        </span>
+
+    </div>
+
+
+    <form
+        method="get"
+        action="{{ url_for('admin.dashboard') }}"
+        class="mt-6 grid gap-3 sm:grid-cols-[1fr_auto]"
+    >
+
+        <label>
+            <span class="mb-2 block text-sm font-bold text-zinc-300">
+                Pesquisar cliente
+            </span>
+
+            <input
+                type="search"
+                name="vip_q"
+                value="{{ vip_query }}"
+                placeholder="Digite o nome ou e-mail do cliente"
+                autocomplete="off"
+                class="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3.5 text-white outline-none placeholder:text-zinc-700 focus:border-amber-400/50 focus:ring-4 focus:ring-amber-400/10"
+            >
+        </label>
+
+        <button
+            type="submit"
+            class="self-end rounded-2xl bg-amber-400 px-5 py-3.5 font-black text-zinc-950 transition hover:bg-amber-300"
+        >
+            Buscar
+        </button>
+
+    </form>
+
+
+    {% if vip_query %}
+
+        <div class="mt-6">
+
+            <div class="mb-3 flex items-center justify-between gap-3">
+                <h3 class="font-black text-white">
+                    Resultados para “{{ vip_query }}”
+                </h3>
+
+                <a
+                    href="{{ url_for('admin.dashboard') }}#clientes-vip"
+                    class="text-xs font-bold text-zinc-500 hover:text-white"
+                >
+                    Limpar busca
+                </a>
+            </div>
+
+            <div class="space-y-3">
+
+                {% for user in vip_results %}
+
+                    <article class="flex flex-col gap-4 rounded-2xl border border-white/10 bg-zinc-950/40 p-4 sm:flex-row sm:items-center sm:justify-between">
+
+                        <div class="min-w-0">
+
+                            <div class="flex flex-wrap items-center gap-2">
+
+                                <strong class="truncate text-white">
+                                    {{ user.name }}
+                                </strong>
+
+                                {% if user.is_vip %}
+                                    <span class="rounded-full border border-amber-400/25 bg-amber-400/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-amber-300">
+                                        ★ VIP
+                                    </span>
+                                {% endif %}
+
+                            </div>
+
+                            <span class="mt-1 block truncate text-xs text-zinc-600">
+                                {{ user.email }}
+                            </span>
+
+                            {% if user.is_vip and user.vip_since %}
+                                <span class="mt-1 block text-[11px] font-bold text-amber-300/60">
+                                    VIP desde {{ user.vip_since.strftime('%d/%m/%Y') }}
+                                </span>
+                            {% endif %}
+
+                        </div>
+
+                        <div class="flex flex-wrap gap-2">
+
+                            <a
+                                href="{{ url_for('booking.public_profile', user_id=user.id) }}"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-zinc-300 hover:bg-white/10"
+                            >
+                                Ver perfil
+                            </a>
+
+                            <form
+                                method="post"
+                                action="{{ url_for('admin.remove_client_vip', user_id=user.id) if user.is_vip else url_for('admin.toggle_client_vip', user_id=user.id) }}"
+                            >
+                                <input
+                                    type="hidden"
+                                    name="csrf_token"
+                                    value="{{ csrf_token() }}"
+                                >
+
+                                <input
+                                    type="hidden"
+                                    name="vip_q"
+                                    value="{{ vip_query }}"
+                                >
+
+                                {% if user.is_vip %}
+                                    <button
+                                        type="submit"
+                                        class="rounded-xl border border-red-400/20 bg-red-400/5 px-3 py-2 text-xs font-black text-red-300 hover:bg-red-400/10"
+                                    >
+                                        Remover VIP
+                                    </button>
+                                {% else %}
+                                    <button
+                                        type="submit"
+                                        class="rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs font-black text-amber-300 hover:bg-amber-400/20"
+                                    >
+                                        ★ Tornar VIP
+                                    </button>
+                                {% endif %}
+
+                            </form>
+
+                        </div>
+
+                    </article>
+
+                {% else %}
+
+                    <div class="rounded-2xl border border-dashed border-white/10 p-6 text-center text-sm font-bold text-zinc-600">
+                        Nenhum cliente encontrado.
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+    {% endif %}
+
+
+    <div class="mt-7 border-t border-white/5 pt-6">
+
+        <h3 class="font-black text-white">
+            VIPs atuais
+        </h3>
+
+        <div class="mt-3 grid gap-3 md:grid-cols-2">
+
+            {% for user in vip_clients %}
+
+                <article class="flex items-center justify-between gap-3 rounded-2xl border border-amber-400/10 bg-amber-400/[.035] p-4">
+
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2">
+                            <span class="text-amber-300">★</span>
+                            <strong class="truncate text-white">
+                                {{ user.name }}
+                            </strong>
+                        </div>
+
+                        <span class="mt-1 block truncate text-xs text-zinc-600">
+                            {{ user.email }}
+                        </span>
+                    </div>
+
+                    <form
+                        method="post"
+                        action="{{ url_for('admin.remove_client_vip', user_id=user.id) }}"
+                    >
+                        <input
+                            type="hidden"
+                            name="csrf_token"
+                            value="{{ csrf_token() }}"
+                        >
+
+                        <button
+                            type="submit"
+                            class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-zinc-400 hover:border-red-400/20 hover:bg-red-400/5 hover:text-red-300"
+                        >
+                            Remover VIP
+                        </button>
+                    </form>
+
+                </article>
+
+            {% else %}
+
+                <div class="rounded-2xl border border-dashed border-white/10 p-6 text-center text-sm font-bold text-zinc-600 md:col-span-2">
+                    Nenhum cliente VIP cadastrado ainda.
+                </div>
+
+            {% endfor %}
 
         </div>
 
@@ -629,6 +954,30 @@
 
     </div>
 
+    <form
+        method="post"
+        action="{{ url_for('admin.test_whatsapp') }}"
+        class="mt-5 grid gap-3 rounded-2xl border border-white/10 bg-zinc-950/35 p-4 sm:grid-cols-[1fr_auto]"
+    >
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label>
+            <span class="mb-2 block text-xs font-black uppercase tracking-wider text-zinc-500">Número para teste</span>
+            <input
+                type="tel"
+                name="test_phone"
+                required
+                placeholder="81999999999"
+                class="w-full rounded-xl border border-white/10 bg-zinc-950/70 px-4 py-3 text-white outline-none focus:border-emerald-400/50"
+            >
+        </label>
+        <button
+            type="submit"
+            class="self-end rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 font-black text-emerald-300 hover:bg-emerald-400/15"
+        >
+            Testar WhatsApp
+        </button>
+    </form>
+
 
     {% if not whatsapp_ready %}
 
@@ -671,7 +1020,7 @@
         </span>
 
         <h2 class="mt-1 text-2xl font-black">
-            Agendamentos recentes
+            Agendamentos de hoje e ontem
         </h2>
 
     </div>
@@ -681,7 +1030,7 @@
 
     <div class="hidden overflow-x-auto md:block">
 
-        <table class="w-full min-w-[850px] text-left text-sm">
+        <table class="w-full min-w-[980px] text-left text-sm">
 
             <thead class="text-xs uppercase text-zinc-500">
 
@@ -697,6 +1046,10 @@
 
                     <th class="px-3 py-3">
                         Serviço
+                    </th>
+
+                    <th class="px-3 py-3">
+                        Profissional
                     </th>
 
                     <th class="px-3 py-3">
@@ -737,9 +1090,17 @@
 
                         <td class="px-3 py-4">
 
-                            <strong>
-                                {{ a.user.name }}
-                            </strong>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <strong>
+                                    {{ a.user.name }}
+                                </strong>
+
+                                {% if a.user.is_vip %}
+                                    <span class="rounded-full border border-amber-400/25 bg-amber-400/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-300">
+                                        ★ VIP
+                                    </span>
+                                {% endif %}
+                            </div>
 
                             <span
                                 class="block text-xs text-zinc-600"
@@ -752,6 +1113,10 @@
 
                         <td class="px-3 py-4">
                             {{ a.service.name }}
+                        </td>
+
+                        <td class="px-3 py-4">
+                            <strong class="text-sky-300">{{ a.professional.name }}</strong>
                         </td>
 
 
@@ -821,10 +1186,10 @@
                     <tr>
 
                         <td
-                            colspan="5"
+                            colspan="6"
                             class="py-10 text-center text-zinc-500"
                         >
-                            Nenhum agendamento registrado.
+                            Nenhum agendamento de hoje ou de ontem.
                         </td>
 
                     </tr>
@@ -852,9 +1217,17 @@
 
                     <div>
 
-                        <strong>
-                            {{ a.user.name }}
-                        </strong>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <strong>
+                                {{ a.user.name }}
+                            </strong>
+
+                            {% if a.user.is_vip %}
+                                <span class="rounded-full border border-amber-400/25 bg-amber-400/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-300">
+                                    ★ VIP
+                                </span>
+                            {% endif %}
+                        </div>
 
                         <span
                             class="mt-1 block text-xs text-zinc-600"
@@ -888,6 +1261,13 @@
 
                     <strong class="block">
                         {{ a.service.name }}
+                    </strong>
+
+                    <span class="mt-3 block text-zinc-600">
+                        Profissional
+                    </span>
+                    <strong class="block text-sky-300">
+                        {{ a.professional.name }}
                     </strong>
 
                 </div>

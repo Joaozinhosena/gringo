@@ -4,12 +4,7 @@ from flask_login import UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from .extensions import db
-telefone = db.Column(db.String(20), nullable=False)
 
-lembrete_enviado = db.Column(
-    db.Boolean,
-    default=False
-)
 
 class User(UserMixin, db.Model):
     __tablename__ = "users"
@@ -20,6 +15,14 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(20), nullable=False, default="client", index=True)
     avatar = db.Column(db.String(255), nullable=True)
+
+    # Telefone do cliente. Mantido opcional para preservar contas antigas.
+    telefone = db.Column(db.String(20), nullable=True)
+
+    # Programa VIP controlado pelo administrador.
+    is_vip = db.Column(db.Boolean, nullable=False, default=False, index=True)
+    vip_since = db.Column(db.DateTime, nullable=True)
+
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
     appointments = db.relationship(
@@ -91,6 +94,10 @@ class Appointment(db.Model):
 
     status = db.Column(db.String(20), nullable=False, default="scheduled", index=True)
     notes = db.Column(db.String(500), nullable=True)
+
+    # Controle de lembrete do WhatsApp. Antes estava fora da classe.
+    lembrete_enviado = db.Column(db.Boolean, nullable=False, default=False)
+
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
     user = db.relationship("User", back_populates="appointments")

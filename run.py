@@ -9,6 +9,7 @@ from flask import (
     Response,
     send_from_directory,
 )
+from sqlalchemy import inspect, text
 
 BASE_DIR = Path(__file__).resolve().parent
 TEMPLATE_DIR = BASE_DIR / "templates"
@@ -68,6 +69,76 @@ def _env_bool(
             "sim",
             "on",
         }
+    )
+
+
+def _ensure_runtime_columns(application):
+    """
+    Migração simples e idempotente para instalações já existentes.
+
+    db.create_all() cria colunas apenas em tabelas novas. Esta rotina
+    acrescenta as colunas necessárias quando a tabela já existia antes
+    da atualização, preservando os dados atuais.
+    """
+    dialect = db.engine.dialect.name
+
+    if dialect == "postgresql":
+        bool_default = "FALSE"
+        datetime_type = "TIMESTAMP"
+    else:
+        bool_default = "0"
+        datetime_type = "DATETIME"
+
+    def add_column_if_missing(table_name, column_name, sql_definition):
+        inspector = inspect(db.engine)
+
+        if table_name not in inspector.get_table_names():
+            return
+
+        existing_columns = {
+            column["name"]
+            for column in inspector.get_columns(table_name)
+        }
+
+        if column_name in existing_columns:
+            return
+
+        statement = (
+            f"ALTER TABLE {table_name} "
+            f"ADD COLUMN {column_name} {sql_definition}"
+        )
+
+        with db.engine.begin() as connection:
+            connection.execute(text(statement))
+
+        application.logger.info(
+            "Migração: coluna %s.%s criada.",
+            table_name,
+            column_name,
+        )
+
+    add_column_if_missing(
+        "users",
+        "telefone",
+        "VARCHAR(20)",
+    )
+
+    add_column_if_missing(
+        "users",
+        "is_vip",
+        f"BOOLEAN NOT NULL DEFAULT {bool_default}",
+    )
+
+    add_column_if_missing(
+        "users",
+        "vip_since",
+        datetime_type,
+    )
+
+    add_column_if_missing(
+        "appointments",
+        "lembrete_enviado",
+        f"BOOLEAN NOT NULL DEFAULT {bool_default}",
     )
 
 
@@ -325,26 +396,34 @@ def create_app():
         bp as whatsapp_webhook_bp,
     )
 
-    application.register_blueprint(admin_stats_bp)
-
     application.register_blueprint(
-        whatsapp_webhook_bp
+        admin_stats_bp,
+        name="admin_stats",
     )
 
     application.register_blueprint(
-        auth_bp
+        whatsapp_webhook_bp,
+        name="whatsapp_webhook",
     )
 
     application.register_blueprint(
-        booking_bp
+        auth_bp,
+        name="auth",
     )
 
     application.register_blueprint(
-        admin_bp
+        booking_bp,
+        name="booking",
     )
 
     application.register_blueprint(
-        whatsapp_bp
+        admin_bp,
+        name="admin",
+    )
+
+    application.register_blueprint(
+        whatsapp_bp,
+        name="whatsapp",
     )
 
     @login_manager.user_loader
@@ -478,6 +557,7 @@ self.addEventListener("notificationclick", (event) => {
 
     with application.app_context():
         db.create_all()
+        _ensure_runtime_columns(application)
 
     return application
 

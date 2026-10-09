@@ -11,6 +11,7 @@ from flask import (
     request,
     url_for,
 )
+from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 
 from .extensions import db, socketio
@@ -22,8 +23,8 @@ bp = Blueprint("admin", __name__, url_prefix="/admin")
 
 
 BUSINESS_TZ = timezone(timedelta(hours=-3), name="America/Recife")
-OPEN_TIME = time(7, 0)
-CLOSE_TIME = time(20, 0)
+OPEN_TIME = time(9, 0)
+CLOSE_TIME = time(19, 30)
 SLOT_STEP_MINUTES = 30
 
 
@@ -43,77 +44,156 @@ def active_week_range(reference_date=None):
     return monday, monday + timedelta(days=5)
 
 
-def get_default_professional():
+def is_internal_resource(professional):
+    if not professional:
+        return False
+
     return (
-        Professional.query
-        .filter_by(active=True)
-        .order_by(Professional.id.asc())
-        .first()
+        professional.name == "Gringo Barber"
+        and "registro interno da agenda" in (professional.bio or "").lower()
     )
 
 
+def get_active_professionals():
+    professionals = (
+        Professional.query
+        .filter_by(active=True)
+        .order_by(Professional.name.asc(), Professional.id.asc())
+        .all()
+    )
+
+    return [
+        professional
+        for professional in professionals
+        if not is_internal_resource(professional)
+    ]
+
+
 def count_available_base_slots():
-    """Conta blocos-base de 30 min livres na semana ativa."""
-    professional = get_default_professional()
-    if not professional:
+    """Conta blocos-base livres de 30 min somando todos os profissionais ativos."""
+    professionals = get_active_professionals()
+    if not professionals:
         return 0
 
     now = local_now()
     week_start, week_end = active_week_range(now.date())
+    range_start = datetime.combine(week_start, time.min)
+    range_end = datetime.combine(week_end + timedelta(days=1), time.min)
 
     appointments = (
         Appointment.query
         .filter(
-            Appointment.professional_id == professional.id,
+            Appointment.professional_id.in_([p.id for p in professionals]),
             Appointment.status == "scheduled",
-            Appointment.start_at < datetime.combine(week_end + timedelta(days=1), time.min),
-            Appointment.end_at > datetime.combine(week_start, time.min),
+            Appointment.start_at < range_end,
+            Appointment.end_at > range_start,
         )
         .all()
     )
 
+    by_professional = {professional.id: [] for professional in professionals}
+    for appointment in appointments:
+        by_professional.setdefault(appointment.professional_id, []).append(appointment)
+
     available = 0
-    current_date = week_start
 
-    while current_date <= week_end:
-        cursor = datetime.combine(current_date, OPEN_TIME)
-        closing = datetime.combine(current_date, CLOSE_TIME)
+    for professional in professionals:
+        current_date = week_start
+        professional_appointments = by_professional.get(professional.id, [])
 
-        while cursor + timedelta(minutes=SLOT_STEP_MINUTES) <= closing:
-            end_at = cursor + timedelta(minutes=SLOT_STEP_MINUTES)
+        while current_date <= week_end:
+            cursor = datetime.combine(current_date, OPEN_TIME)
+            closing = datetime.combine(current_date, CLOSE_TIME)
 
-            if cursor > now:
-                occupied = any(
-                    cursor < appointment.end_at and end_at > appointment.start_at
-                    for appointment in appointments
-                )
-                if not occupied:
-                    available += 1
+            while cursor + timedelta(minutes=SLOT_STEP_MINUTES) <= closing:
+                end_at = cursor + timedelta(minutes=SLOT_STEP_MINUTES)
 
-            cursor += timedelta(minutes=SLOT_STEP_MINUTES)
+                if cursor > now:
+                    occupied = any(
+                        cursor < appointment.end_at and end_at > appointment.start_at
+                        for appointment in professional_appointments
+                    )
+                    if not occupied:
+                        available += 1
 
-        current_date += timedelta(days=1)
+                cursor += timedelta(minutes=SLOT_STEP_MINUTES)
+
+            current_date += timedelta(days=1)
 
     return available
-
 
 @bp.get("/")
 @admin_required
 def dashboard():
+    # Movimentação recente: exibe somente os agendamentos de hoje e de ontem.
+    # Os registros antigos continuam salvos no banco; apenas deixam de aparecer
+    # nesta lista automaticamente quando passam da janela de dois dias.
+    now = local_now()
+    today = now.date()
+    yesterday = today - timedelta(days=1)
+
+    movement_start = datetime.combine(yesterday, time.min)
+    movement_end = datetime.combine(today + timedelta(days=1), time.min)
+
     appointments = (
         Appointment.query
+        .filter(
+            Appointment.start_at >= movement_start,
+            Appointment.start_at < movement_end,
+        )
         .order_by(Appointment.start_at.desc())
-        .limit(80)
         .all()
     )
 
-    professionals = Professional.query.order_by(Professional.name.asc()).all()
+    professionals = [
+        professional
+        for professional in (
+            Professional.query
+            .order_by(Professional.name.asc(), Professional.id.asc())
+            .all()
+        )
+        if not is_internal_resource(professional)
+    ]
     services = Service.query.order_by(Service.name.asc()).all()
 
-    now = local_now()
+    vip_query = request.args.get("vip_q", "").strip()
+    vip_results = []
+
+    if vip_query:
+        search_pattern = f"%{vip_query}%"
+
+        vip_results = (
+            User.query
+            .filter(
+                User.role == "client",
+                or_(
+                    User.name.ilike(search_pattern),
+                    User.email.ilike(search_pattern),
+                ),
+            )
+            .order_by(
+                User.is_vip.desc(),
+                User.name.asc(),
+            )
+            .limit(30)
+            .all()
+        )
+
+    vip_clients = (
+        User.query
+        .filter_by(
+            role="client",
+            is_vip=True,
+        )
+        .order_by(User.name.asc())
+        .limit(100)
+        .all()
+    )
 
     stats = {
         "clients": User.query.filter_by(role="client").count(),
+        "vip_clients": User.query.filter_by(role="client", is_vip=True).count(),
+        "active_professionals": len(get_active_professionals()),
         "scheduled": (
             Appointment.query
             .filter(
@@ -148,7 +228,123 @@ def dashboard():
         services=services,
         stats=stats,
         whatsapp_status=whatsapp_status,
+        vip_query=vip_query,
+        vip_results=vip_results,
+        vip_clients=vip_clients,
     )
+
+
+# ============================================================
+# CLIENTES VIP
+# ============================================================
+
+@bp.post("/cliente/<int:user_id>/vip")
+@admin_required
+def toggle_client_vip(user_id):
+    require_csrf()
+
+    user = db.session.get(User, user_id)
+
+    if not user or user.role != "client":
+        flash("Cliente não encontrado.", "danger")
+        return redirect(
+            url_for(
+                "admin.dashboard",
+                _anchor="clientes-vip",
+            )
+        )
+
+    user.is_vip = not bool(user.is_vip)
+
+    if user.is_vip:
+        user.vip_since = local_now()
+        message = f"{user.name} agora é cliente VIP."
+    else:
+        user.vip_since = None
+        message = f"{user.name} foi removido dos clientes VIP."
+
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception(
+            "Erro ao alterar status VIP do usuário %s.",
+            user_id,
+        )
+        flash(
+            "Não foi possível atualizar o status VIP do cliente.",
+            "danger",
+        )
+        return redirect(
+            url_for(
+                "admin.dashboard",
+                _anchor="clientes-vip",
+            )
+        )
+
+    flash(message, "success")
+
+    vip_query = request.form.get("vip_q", "").strip()
+
+    if vip_query:
+        return redirect(
+            url_for(
+                "admin.dashboard",
+                vip_q=vip_query,
+                _anchor="clientes-vip",
+            )
+        )
+
+    return redirect(
+        url_for(
+            "admin.dashboard",
+            _anchor="clientes-vip",
+        )
+    )
+
+
+@bp.post("/cliente/<int:user_id>/vip/remover")
+@admin_required
+def remove_client_vip(user_id):
+    """Remove somente o status VIP; nunca exclui a conta do cliente."""
+    require_csrf()
+
+    user = db.session.get(User, user_id)
+
+    if not user or user.role != "client":
+        flash("Cliente não encontrado.", "danger")
+        return redirect(url_for("admin.dashboard", _anchor="clientes-vip"))
+
+    vip_query = request.form.get("vip_q", "").strip()
+
+    if not bool(user.is_vip):
+        flash(f"{user.name} já não possui status VIP.", "info")
+    else:
+        user.is_vip = False
+        user.vip_since = None
+
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            current_app.logger.exception(
+                "Erro ao remover status VIP do usuário %s.",
+                user_id,
+            )
+            flash("Não foi possível remover o status VIP.", "danger")
+        else:
+            flash(f"{user.name} foi removido dos clientes VIP.", "success")
+
+    if vip_query:
+        return redirect(
+            url_for(
+                "admin.dashboard",
+                vip_q=vip_query,
+                _anchor="clientes-vip",
+            )
+        )
+
+    return redirect(url_for("admin.dashboard", _anchor="clientes-vip"))
 
 
 @bp.post("/profissionais")
@@ -163,17 +359,28 @@ def add_professional():
         flash("Informe o nome do profissional.", "danger")
         return redirect(url_for("admin.dashboard"))
 
+    existing = (
+        Professional.query
+        .filter(Professional.name.ilike(name))
+        .first()
+    )
+
+    if existing and not is_internal_resource(existing):
+        flash("Já existe um profissional com esse nome.", "warning")
+        return redirect(url_for("admin.dashboard", _anchor="profissionais"))
+
     db.session.add(Professional(name=name, bio=bio, active=True))
 
     try:
         db.session.commit()
     except IntegrityError:
         db.session.rollback()
-        flash("Não foi possível adicionar o profissional. Verifique se ele já está cadastrado.", "danger")
-        return redirect(url_for("admin.dashboard"))
+        flash("Não foi possível adicionar o profissional.", "danger")
+        return redirect(url_for("admin.dashboard", _anchor="profissionais"))
 
+    socketio.emit("schedule_changed", {"reason": "professional_created"})
     flash("Profissional adicionado.", "success")
-    return redirect(url_for("admin.dashboard"))
+    return redirect(url_for("admin.dashboard", _anchor="profissionais"))
 
 
 @bp.post("/profissional/<int:professional_id>/alternar")
@@ -182,16 +389,83 @@ def toggle_professional(professional_id):
     require_csrf()
 
     professional = db.session.get(Professional, professional_id)
-    if not professional:
+    if not professional or is_internal_resource(professional):
         flash("Profissional não encontrado.", "danger")
-        return redirect(url_for("admin.dashboard"))
+        return redirect(url_for("admin.dashboard", _anchor="profissionais"))
 
     professional.active = not professional.active
     db.session.commit()
 
-    socketio.emit("schedule_changed", {"reason": "professional_changed"})
-    flash("Profissional ativado." if professional.active else "Profissional desativado.", "success")
-    return redirect(url_for("admin.dashboard"))
+    socketio.emit(
+        "schedule_changed",
+        {
+            "professional_id": professional.id,
+            "reason": "professional_changed",
+        },
+    )
+    flash(
+        "Profissional ativado." if professional.active else "Profissional desativado.",
+        "success",
+    )
+    return redirect(url_for("admin.dashboard", _anchor="profissionais"))
+
+
+@bp.post("/profissional/<int:professional_id>/remover")
+@admin_required
+def remove_professional(professional_id):
+    """
+    Remove o profissional quando não há histórico.
+    Havendo agendamentos ou slots antigos, desativa para preservar o histórico.
+    """
+    require_csrf()
+
+    professional = db.session.get(Professional, professional_id)
+
+    if not professional or is_internal_resource(professional):
+        flash("Profissional não encontrado.", "danger")
+        return redirect(url_for("admin.dashboard", _anchor="profissionais"))
+
+    has_appointments = (
+        Appointment.query
+        .filter_by(professional_id=professional.id)
+        .first()
+        is not None
+    )
+
+    # Bancos antigos podem conter slots vinculados ao profissional.
+    has_slots = bool(professional.slots)
+
+    try:
+        if has_appointments or has_slots:
+            professional.active = False
+            db.session.commit()
+            flash(
+                "Profissional removido da agenda. O histórico foi preservado.",
+                "success",
+            )
+        else:
+            name = professional.name
+            db.session.delete(professional)
+            db.session.commit()
+            flash(f"Profissional {name} removido definitivamente.", "success")
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception(
+            "Erro ao remover profissional %s.",
+            professional_id,
+        )
+        flash("Não foi possível remover o profissional.", "danger")
+        return redirect(url_for("admin.dashboard", _anchor="profissionais"))
+
+    socketio.emit(
+        "schedule_changed",
+        {
+            "professional_id": professional_id,
+            "reason": "professional_removed",
+        },
+    )
+
+    return redirect(url_for("admin.dashboard", _anchor="profissionais"))
 
 
 @bp.post("/servicos")
@@ -249,6 +523,54 @@ def toggle_service(service_id):
     socketio.emit("schedule_changed", {"reason": "service_changed"})
     flash("Serviço ativado." if service.active else "Serviço desativado.", "success")
     return redirect(url_for("admin.dashboard"))
+
+
+@bp.post("/servico/<int:service_id>/remover")
+@admin_required
+def remove_service(service_id):
+    """
+    Exclui fisicamente um serviço sem histórico.
+    Se já foi utilizado em agendamentos, apenas o desativa para preservar os registros.
+    """
+    require_csrf()
+
+    service = db.session.get(Service, service_id)
+
+    if not service:
+        flash("Serviço não encontrado.", "danger")
+        return redirect(url_for("admin.dashboard", _anchor="catalogo"))
+
+    has_history = (
+        Appointment.query
+        .filter_by(service_id=service.id)
+        .first()
+        is not None
+    )
+
+    try:
+        if has_history:
+            service.active = False
+            db.session.commit()
+            flash(
+                "Serviço removido da agenda. O histórico de atendimentos foi preservado.",
+                "success",
+            )
+        else:
+            name = service.name
+            db.session.delete(service)
+            db.session.commit()
+            flash(f"Serviço {name} removido definitivamente.", "success")
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception(
+            "Erro ao remover serviço %s.",
+            service_id,
+        )
+        flash("Não foi possível remover o serviço.", "danger")
+        return redirect(url_for("admin.dashboard", _anchor="catalogo"))
+
+    socketio.emit("schedule_changed", {"reason": "service_removed"})
+    return redirect(url_for("admin.dashboard", _anchor="catalogo"))
 
 
 @bp.post("/gerar-horarios")

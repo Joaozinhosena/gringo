@@ -24,9 +24,17 @@
                 <span class="h-1.5 flex-1 bg-[#f4600d]"></span>
             </div>
 
-            <span class="text-xs font-black uppercase tracking-[.18em] text-[#f58b46]">
-                MINHA CONTA
-            </span>
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="text-xs font-black uppercase tracking-[.18em] text-[#f58b46]">
+                    MINHA CONTA
+                </span>
+
+                {% if current_user.is_vip %}
+                    <span class="rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-amber-300">
+                        ★ VIP
+                    </span>
+                {% endif %}
+            </div>
 
             <h1 class="mt-3 text-4xl font-black tracking-[-.035em] text-white sm:text-5xl">
                 Meu perfil
@@ -126,6 +134,12 @@
                         class="hidden h-44 w-44 rounded-[2rem] border border-white/10 object-cover shadow-2xl shadow-black/40"
                     >
 
+                {% endif %}
+
+                {% if current_user.is_vip %}
+                    <span class="absolute -bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-amber-400/30 bg-zinc-950/95 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-amber-300 shadow-xl">
+                        ★ Cliente VIP
+                    </span>
                 {% endif %}
 
 
@@ -263,6 +277,28 @@
             </div>
 
 
+            {% if current_user.is_vip %}
+                <div class="rounded-2xl border border-amber-400/20 bg-amber-400/[.05] p-4">
+                    <div class="flex items-start gap-3">
+                        <span class="text-xl text-amber-300">★</span>
+
+                        <div>
+                            <strong class="block text-sm font-black text-amber-200">
+                                Cliente VIP Gringo Barber
+                            </strong>
+
+                            <span class="mt-1 block text-xs leading-5 text-zinc-500">
+                                Seu selo VIP aparece no perfil público e nos agendamentos.
+                                {% if current_user.vip_since %}
+                                    VIP desde {{ current_user.vip_since.strftime('%d/%m/%Y') }}.
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+
             <div class="flex flex-col gap-3 border-t border-white/5 pt-5 sm:flex-row">
 
                 <button
@@ -280,39 +316,28 @@
                     Voltar para minha agenda
                 </a>
 
+                
+
+
+
+
+
             </div>
 
         </div>
 
     </section>
 
+
 </form>
+
+
 
 
 <!-- ====================================================== -->
 <!-- SESSÃO DA CONTA -->
 <!-- ====================================================== -->
-
-<section class="mt-6 rounded-[2rem] border border-red-400/15 bg-red-400/[.035] p-5 shadow-xl sm:p-6">
-
-    <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-
-        <div>
-
-            <span class="text-[11px] font-black uppercase tracking-[.16em] text-red-300/70">
-                SESSÃO DA CONTA
-            </span>
-
-            <h2 class="mt-1 text-xl font-black text-white">
-                Sair da conta
-            </h2>
-
-            <p class="mt-2 max-w-2xl text-sm leading-6 text-zinc-500">
-                Encerre sua sessão neste dispositivo. Seus agendamentos e dados da conta continuarão salvos.
-            </p>
-
-        </div>
-
+ <section class="">
 
         <form
             method="post"
@@ -329,16 +354,14 @@
 
             <button
                 type="submit"
-                class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-red-400/25 bg-red-400/10 px-5 font-black text-red-200 transition hover:border-red-400/40 hover:bg-red-400/15 sm:w-auto"
+                class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-red-400/25 bg-red-400/10 px-5 font-black text-red-200 transition hover:border-red-400/40 hover:bg-red-400/15 sm:w-auto "
             >
-                <span aria-hidden="true">↪</span>
+           
                 Sair da conta
             </button>
 
         </form>
-
-    </div>
-
+    
 </section>
 
 {% endblock %}

@@ -29,14 +29,14 @@
             </h1>
 
             <p class="mt-3 max-w-3xl text-sm leading-7 text-zinc-400 sm:text-base">
-                Escolha o serviço e selecione um dos horários disponíveis desta semana.
+                Escolha o serviço, o profissional e depois selecione um dos horários disponíveis.
             </p>
 
             <div class="mt-6 flex flex-wrap gap-3 text-xs font-black">
 
                 <span class="inline-flex items-center gap-2 rounded-full border border-[#f4600d]/20 bg-[#f4600d]/5 px-3 py-2 text-[#f58b46]">
-                    <span class="h-2 w-2 rounded-full bg-[#f4600d] shadow-[0_0_12px_rgba(244,96,13,.7)]"></span>
-                    07h às 20h
+                    <span class="h-2 w-2 rounded-full bg-[#f4600d]"></span>
+                    09h às 19h30
                 </span>
 
                 <span class="inline-flex items-center gap-2 rounded-full border border-sky-400/15 bg-sky-400/5 px-3 py-2 text-sky-300">
@@ -44,12 +44,17 @@
                     Segunda a sábado
                 </span>
 
+                {% if current_user.is_vip %}
+                    <span class="inline-flex items-center gap-2 rounded-full border border-amber-400/25 bg-amber-400/10 px-3 py-2 text-amber-300">
+                        ★ CLIENTE VIP
+                    </span>
+                {% endif %}
+
             </div>
 
         </div>
 
         <div class="hidden lg:block">
-
             <div class="rounded-[1.7rem] border border-white/10 bg-black/20 p-2 shadow-2xl">
                 <img
                     src="{{ url_for('static', filename='imagens/gringo-logo.jpg') }}"
@@ -57,7 +62,6 @@
                     class="h-36 w-36 rounded-[1.35rem] object-cover"
                 >
             </div>
-
         </div>
 
     </div>
@@ -68,85 +72,51 @@
 {% if not services %}
 
     <section class="mt-6 rounded-[2rem] border border-amber-400/20 bg-amber-400/5 p-6 shadow-xl">
-
         <div class="flex items-start gap-4">
-
-            <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-amber-400/10 text-2xl">
-                ⚠
-            </div>
-
+            <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-amber-400/10 text-2xl">⚠</div>
             <div>
                 <strong class="block text-lg font-black text-amber-200">
                     Nenhum serviço está cadastrado.
                 </strong>
-
                 <p class="mt-2 text-sm leading-6 text-amber-100/60">
-                    Assim que os serviços forem cadastrados, os horários disponíveis aparecerão aqui.
+                    Assim que um serviço ativo for cadastrado, os horários poderão ser reservados.
                 </p>
             </div>
-
         </div>
-
     </section>
 
 {% elif not has_professional %}
 
     <section class="mt-6 rounded-[2rem] border border-amber-400/20 bg-amber-400/5 p-6 shadow-xl">
-
         <div class="flex items-start gap-4">
-
-            <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-amber-400/10 text-2xl">
-                ✂
-            </div>
-
+ 
             <div>
                 <strong class="block text-lg font-black text-amber-200">
-                    A agenda ainda não foi configurada.
+                    Nenhum profissional disponível.
                 </strong>
-
                 <p class="mt-2 text-sm leading-6 text-amber-100/60">
-                    É necessário ter um profissional ativo para liberar os horários.
+                    O administrador precisa cadastrar ou ativar pelo menos um profissional.
                 </p>
             </div>
-
         </div>
-
     </section>
 
 {% else %}
 
-    <section class="mt-6 grid gap-5 xl:grid-cols-[360px_1fr]">
-
-        <!-- ================================================== -->
-        <!-- SERVIÇO -->
-        <!-- ================================================== -->
+    <section class="mt-6 grid gap-5 xl:grid-cols-[380px_1fr]">
 
         <aside class="self-start rounded-[2rem] border border-white/10 bg-zinc-900/70 p-5 shadow-xl sm:p-6 xl:sticky xl:top-28">
 
             <div class="flex items-center gap-3">
-
-                <div class="grid h-11 w-11 place-items-center rounded-2xl bg-[#f4600d]/10 text-xl text-[#f58b46]">
-                    ✂
-                </div>
-
+              
                 <div>
-                    <span class="text-[11px] font-black uppercase tracking-[.16em] text-zinc-600">
-                        ETAPA 1
-                    </span>
-
-                    <h2 class="text-lg font-black text-white">
-                        Escolha o serviço
-                    </h2>
+                    <span class="text-[11px] font-black uppercase tracking-[.16em] text-zinc-600">ETAPA 1</span>
+                    <h2 class="text-lg font-black text-white">Escolha o serviço</h2>
                 </div>
-
             </div>
 
             <label class="mt-5 block">
-
-                <span class="mb-2 block text-sm font-black text-zinc-300">
-                    Serviço
-                </span>
-
+                <span class="mb-2 block text-sm font-black text-zinc-300">Serviço</span>
                 <select
                     id="service"
                     class="w-full rounded-2xl border border-white/10 bg-[#0d0d0f] px-4 py-3.5 text-sm font-bold text-white outline-none transition focus:border-[#f4600d]/60 focus:ring-4 focus:ring-[#f4600d]/10"
@@ -157,91 +127,75 @@
                         </option>
                     {% endfor %}
                 </select>
+            </label>
 
+            <div class="my-6 border-t border-white/5"></div>
+
+            <div class="flex items-center gap-3">
+               
+                <div>
+                    <span class="text-[11px] font-black uppercase tracking-[.16em] text-zinc-600">ETAPA 2</span>
+                    <h2 class="text-lg font-black text-white">Escolha o profissional</h2>
+                </div>
+            </div>
+
+            <label class="mt-5 block">
+                <span class="mb-2 block text-sm font-black text-zinc-300">Profissional</span>
+                <select
+                    id="professional"
+                    class="w-full rounded-2xl border border-white/10 bg-[#0d0d0f] px-4 py-3.5 text-sm font-bold text-white outline-none transition focus:border-sky-400/60 focus:ring-4 focus:ring-sky-400/10"
+                >
+                    {% for professional in professionals %}
+                        <option value="{{ professional.id }}">
+                            {{ professional.name }}
+                        </option>
+                    {% endfor %}
+                </select>
             </label>
 
             <div class="mt-5 rounded-2xl border border-white/5 bg-black/20 p-4">
-
                 <div class="flex items-center gap-3">
-
-                    <span class="grid h-9 w-9 place-items-center rounded-xl bg-sky-400/10 text-sky-300">
-                        ⏱
-                    </span>
-
+                    <span class="grid h-9 w-9 place-items-center rounded-xl bg-sky-400/10 text-sky-300">⏱</span>
                     <div>
-                        <strong class="block text-sm font-black text-zinc-200">
-                            Horários atualizados
-                        </strong>
-
+                        <strong class="block text-sm font-black text-zinc-200">Agenda individual</strong>
                         <span class="mt-1 block text-xs leading-5 text-zinc-600">
-                            Horários ocupados ou passados não aparecem.
+                            Cada profissional possui seus próprios horários. Dois profissionais podem atender no mesmo horário.
                         </span>
                     </div>
-
                 </div>
-
             </div>
 
             <div class="mt-4 rounded-2xl border border-[#f4600d]/10 bg-[#f4600d]/5 p-4">
-
                 <div class="flex items-center gap-3">
-
-                    <span class="grid h-9 w-9 place-items-center rounded-xl bg-[#f4600d]/10 text-[#f58b46]">
-                        ✓
-                    </span>
-
+                    <span class="grid h-9 w-9 place-items-center rounded-xl bg-[#f4600d]/10 text-[#f58b46]">✓</span>
                     <div>
-                        <strong class="block text-sm font-black text-zinc-200">
-                            Confirmação rápida
-                        </strong>
-
+                        <strong class="block text-sm font-black text-zinc-200">Confirmação rápida</strong>
                         <span class="mt-1 block text-xs leading-5 text-zinc-600">
-                            Clique em um horário livre para concluir.
+                            Clique em um horário livre para concluir o agendamento.
                         </span>
                     </div>
-
                 </div>
-
             </div>
 
         </aside>
 
-
-        <!-- ================================================== -->
-        <!-- HORÁRIOS -->
-        <!-- ================================================== -->
 
         <section class="rounded-[2rem] border border-white/10 bg-zinc-900/70 p-5 shadow-xl sm:p-6">
 
             <div class="mb-6 flex flex-col gap-4 border-b border-white/5 pb-5 sm:flex-row sm:items-end sm:justify-between">
 
                 <div>
-
                     <div class="flex items-center gap-3">
-
-                        <div class="grid h-11 w-11 place-items-center rounded-2xl bg-[#3f6d87]/10 text-xl text-sky-300">
-                            ◷
-                        </div>
-
+                        <div class="grid h-11 w-11 place-items-center rounded-2xl bg-[#3f6d87]/10 text-xl text-sky-300">◷</div>
                         <div>
-                            <span class="text-[11px] font-black uppercase tracking-[.16em] text-zinc-600">
-                                ETAPA 2
-                            </span>
-
-                            <h2 class="text-xl font-black text-white sm:text-2xl">
-                                Horários desta semana
-                            </h2>
+                            <span class="text-[11px] font-black uppercase tracking-[.16em] text-zinc-600">ETAPA 3</span>
+                            <h2 class="text-xl font-black text-white sm:text-2xl">Horários disponíveis</h2>
                         </div>
-
                     </div>
 
-                    <p
-                        id="weekLabel"
-                        class="mt-3 text-sm font-bold text-zinc-500"
-                    >
+                    <p id="weekLabel" class="mt-3 text-sm font-bold text-zinc-500">
                         Carregando semana...
                     </p>
-
                 </div>
 
                 <span
@@ -254,28 +208,12 @@
 
             </div>
 
-
-            <div
-                id="schedulePanel"
-                class="grid gap-4 md:grid-cols-2 2xl:grid-cols-3"
-            >
-
+            <div id="schedulePanel" class="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
                 <div class="rounded-3xl border border-dashed border-white/10 bg-black/10 p-8 text-center md:col-span-2 2xl:col-span-3">
-
-                    <div class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-white/[.04] text-xl text-zinc-500">
-                        ◷
-                    </div>
-
-                    <strong class="mt-4 block text-sm font-black text-zinc-400">
-                        Preparando agenda...
-                    </strong>
-
-                    <p class="mt-2 text-xs text-zinc-600">
-                        Buscando os horários disponíveis.
-                    </p>
-
+                    <div class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-white/[.04] text-xl text-zinc-500">◷</div>
+                    <strong class="mt-4 block text-sm font-black text-zinc-400">Preparando agenda...</strong>
+                    <p class="mt-2 text-xs text-zinc-600">Buscando os horários disponíveis.</p>
                 </div>
-
             </div>
 
         </section>
@@ -283,36 +221,22 @@
     </section>
 
 
-    <!-- ====================================================== -->
-    <!-- FEEDBACK -->
-    <!-- ====================================================== -->
-
     <div
         id="bookingFeedback"
         class="fixed inset-x-4 bottom-4 z-[60] hidden overflow-hidden rounded-3xl border border-emerald-400/20 bg-[#0d1b13]/95 p-4 text-emerald-100 shadow-2xl shadow-black/50 backdrop-blur-xl md:left-auto md:right-5 md:w-[420px]"
         role="status"
         aria-live="polite"
     >
-
         <div class="flex items-start gap-3">
-
-            <div class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-emerald-400/10 text-xl text-emerald-300">
-                ✓
-            </div>
-
+            <div class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-emerald-400/10 text-xl text-emerald-300">✓</div>
             <div>
-                <strong class="block text-sm font-black">
-                    Agendamento confirmado
-                </strong>
-
-                <span
-                    id="bookingFeedbackText"
-                    class="mt-1 block text-sm leading-6 text-emerald-200/70"
-                ></span>
+                <strong class="block text-sm font-black">Agendamento confirmado</strong>
+                {% if current_user.is_vip %}
+                    <span class="mt-1 block text-xs font-black text-amber-300">★ Cliente VIP</span>
+                {% endif %}
+                <span id="bookingFeedbackText" class="mt-1 block text-sm leading-6 text-emerald-200/70"></span>
             </div>
-
         </div>
-
     </div>
 
 {% endif %}
@@ -321,9 +245,7 @@
 
 
 {% block scripts %}
-
 {% if services and has_professional %}
-<script src="{{ url_for('static', filename='js/agendar.js') }}"></script>
+<script src="{{ url_for('static', filename='js/agendar.js') }}?v=12"></script>
 {% endif %}
-
 {% endblock %}
