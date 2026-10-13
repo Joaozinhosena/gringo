@@ -44,10 +44,6 @@
                 Acompanhe seu próximo atendimento e consulte seu histórico de cortes.
             </p>
 
-            <div class="mt-5 inline-flex items-center gap-2 rounded-full border border-[#f4600d]/15 bg-[#f4600d]/5 px-3 py-2 text-xs font-black text-[#f58b46]">
-                <span class="h-2 w-2 rounded-full bg-[#f4600d]"></span>
-                Um agendamento ativo por cliente
-            </div>
 
         </div>
 
@@ -152,12 +148,10 @@
                     <!-- DATA -->
                     <div class="grid min-h-[88px] place-items-center content-center rounded-2xl border border-white/5 bg-white/[.035]">
 
-                        <strong class="text-3xl font-black leading-none text-white">
-                            {{ a.start_at.strftime("%d") }}
-                        </strong>
 
+                    
                         <span class="mt-1 text-xs font-black uppercase tracking-wider text-[#f58b46]">
-                            {{ a.start_at.strftime("%m/%Y") }}
+                            {{ a.start_at.strftime("%d/%m/%Y") }}
                         </span>
 
                     </div>
@@ -172,9 +166,7 @@
                                 {{ a.service.name }}
                             </h3>
 
-                            <span class="rounded-full border border-emerald-400/15 bg-emerald-400/5 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-300">
-                                Confirmado
-                            </span>
+                           
 
                         </div>
 
@@ -187,7 +179,7 @@
 
                             <span class="inline-flex items-center gap-2 text-sky-300">
                               
-                                {{ a.professional.name }}
+                               Profissional | {{ a.professional.name }}
                             </span>
 
                            
