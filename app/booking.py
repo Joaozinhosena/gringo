@@ -38,13 +38,17 @@ BUSINESS_TZ = timezone(
     name="America/Recife",
 )
 
-# Expediente solicitado: 09:00 às 19:30.
-# O atendimento precisa terminar até 19:30.
+# Grade de horários:
+# - primeiro horário: 09:00;
+# - último horário que pode INICIAR: 18:00;
+# - intervalos de 30 minutos.
 OPEN_TIME = time(9, 0)
-CLOSE_TIME = time(19, 30)
-
-# Inícios de horário a cada 30 minutos.
+LAST_START_TIME = time(18, 0)
 SLOT_STEP_MINUTES = 30
+
+# Clientes padrão só enxergam a agenda do próprio dia
+# a partir das 05:00.
+STANDARD_RELEASE_TIME = time(5, 0)
 
 # Nome usado por versões antigas como recurso técnico de agenda.
 # Ele não deve aparecer para o cliente como barbeiro selecionável.
@@ -92,6 +96,140 @@ def active_week_range(reference_date=None):
         monday = reference_date - timedelta(days=reference_date.weekday())
 
     return monday, monday + timedelta(days=5)
+
+
+def user_has_vip_access(user=None):
+    """
+    VIP:
+    acesso antecipado à agenda completa de segunda a sábado.
+
+    Cliente padrão:
+    somente o próprio dia, liberado às 05:00.
+    """
+    if user is None:
+        user = current_user
+
+    return bool(
+        getattr(
+            user,
+            "is_vip",
+            False,
+        )
+    )
+
+
+def booking_dates_for_user(now=None, user=None):
+    """
+    Retorna somente as datas que o usuário pode visualizar.
+
+    VIP:
+        os 6 dias da semana ativa (segunda a sábado).
+
+    PADRÃO:
+        somente hoje, desde que:
+        - hoje seja segunda a sábado;
+        - já sejam 05:00 ou mais.
+    """
+    if now is None:
+        now = local_now()
+
+    if user is None:
+        user = current_user
+
+    if user_has_vip_access(user):
+        week_start, week_end = active_week_range(
+            now.date()
+        )
+
+        dates = []
+        cursor_date = week_start
+
+        while cursor_date <= week_end:
+            dates.append(cursor_date)
+            cursor_date += timedelta(days=1)
+
+        return dates
+
+    if not is_business_day(now.date()):
+        return []
+
+    if now.time() < STANDARD_RELEASE_TIME:
+        return []
+
+    return [now.date()]
+
+
+def booking_access_message(now=None, user=None):
+    if now is None:
+        now = local_now()
+
+    if user is None:
+        user = current_user
+
+    if user_has_vip_access(user):
+        return (
+            "Cliente VIP: acesso antecipado aos 6 dias da agenda, "
+            "de segunda a sábado."
+        )
+
+    if not is_business_day(now.date()):
+        return (
+            "Clientes padrão agendam somente no próprio dia. "
+            "A barbearia não abre aos domingos."
+        )
+
+    if now.time() < STANDARD_RELEASE_TIME:
+        return (
+            "A agenda de hoje será liberada às 05:00. "
+            "Clientes padrão podem agendar somente para o próprio dia."
+        )
+
+    return (
+        "Agenda do dia liberada. Clientes padrão podem agendar "
+        "somente para hoje."
+    )
+
+
+def validate_user_booking_access(start_at, now=None, user=None):
+    """
+    Revalidação obrigatória no backend.
+    Impede que a regra VIP/padrão seja burlada por chamada manual à API.
+    """
+    if now is None:
+        now = local_now()
+
+    if user is None:
+        user = current_user
+
+    if user_has_vip_access(user):
+        week_start, week_end = active_week_range(
+            now.date()
+        )
+
+        if not (
+            week_start
+            <= start_at.date()
+            <= week_end
+        ):
+            return (
+                "Clientes VIP podem reservar somente dentro "
+                "dos 6 dias da semana liberada."
+            )
+
+        return None
+
+    if start_at.date() != now.date():
+        return (
+            "Clientes padrão podem agendar somente para o próprio dia."
+        )
+
+    if now.time() < STANDARD_RELEASE_TIME:
+        return (
+            "A agenda de hoje ainda não foi liberada. "
+            "Os horários abrem às 05:00."
+        )
+
+    return None
 
 
 # ============================================================
@@ -192,11 +330,10 @@ def build_available_times(service, professional, selected_date):
 
     Regras:
     - segunda a sábado;
-    - abre às 09:00;
-    - fecha às 19:30;
+    - primeiro início às 09:00;
+    - último início às 18:00;
     - inícios de 30 em 30 minutos;
     - respeita a duração real do serviço;
-    - o serviço deve terminar até 19:30;
     - não mostra horários passados;
     - ignora conflitos de OUTROS profissionais.
     """
@@ -214,8 +351,14 @@ def build_available_times(service, professional, selected_date):
         return []
 
     now = local_now()
-    opening = datetime.combine(selected_date, OPEN_TIME)
-    closing = datetime.combine(selected_date, CLOSE_TIME)
+    opening = datetime.combine(
+        selected_date,
+        OPEN_TIME,
+    )
+    last_start = datetime.combine(
+        selected_date,
+        LAST_START_TIME,
+    )
 
     appointments = scheduled_appointments_for_day(
         professional.id,
@@ -225,28 +368,39 @@ def build_available_times(service, professional, selected_date):
     available = []
     cursor = opening
 
-    while cursor < closing:
-        end_at = cursor + timedelta(minutes=service.duration_minutes)
-
-        if end_at > closing:
-            break
+    while cursor <= last_start:
+        end_at = cursor + timedelta(
+            minutes=service.duration_minutes
+        )
 
         if cursor > now:
             occupied = any(
-                periods_overlap(cursor, end_at, appointment)
+                periods_overlap(
+                    cursor,
+                    end_at,
+                    appointment,
+                )
                 for appointment in appointments
             )
 
             if not occupied:
                 available.append(
                     {
-                        "start_at": cursor.strftime("%Y-%m-%dT%H:%M"),
-                        "start": cursor.strftime("%H:%M"),
-                        "end": end_at.strftime("%H:%M"),
+                        "start_at": cursor.strftime(
+                            "%Y-%m-%dT%H:%M"
+                        ),
+                        "start": cursor.strftime(
+                            "%H:%M"
+                        ),
+                        "end": end_at.strftime(
+                            "%H:%M"
+                        ),
                     }
                 )
 
-        cursor += timedelta(minutes=SLOT_STEP_MINUTES)
+        cursor += timedelta(
+            minutes=SLOT_STEP_MINUTES
+        )
 
     return available
 
@@ -260,10 +414,13 @@ def validate_requested_time(start_at, service):
     if not is_business_day(start_at.date()):
         return "A barbearia não abre aos domingos."
 
-    week_start, week_end = active_week_range(now.date())
-
-    if not (week_start <= start_at.date() <= week_end):
-        return "Esse horário não pertence à semana disponível."
+    access_error = validate_user_booking_access(
+        start_at,
+        now=now,
+        user=current_user,
+    )
+    if access_error:
+        return access_error
 
     if (
         start_at.minute % SLOT_STEP_MINUTES != 0
@@ -280,12 +437,23 @@ def validate_requested_time(start_at, service):
     ):
         return "Serviço inválido ou indisponível."
 
-    opening = datetime.combine(start_at.date(), OPEN_TIME)
-    closing = datetime.combine(start_at.date(), CLOSE_TIME)
-    end_at = start_at + timedelta(minutes=service.duration_minutes)
+    opening = datetime.combine(
+        start_at.date(),
+        OPEN_TIME,
+    )
+    last_start = datetime.combine(
+        start_at.date(),
+        LAST_START_TIME,
+    )
 
-    if start_at < opening or end_at > closing:
-        return "Esse horário está fora do expediente."
+    if (
+        start_at < opening
+        or start_at > last_start
+    ):
+        return (
+            "Esse horário está fora da grade de atendimento "
+            "(09:00 às 18:00)."
+        )
 
     return None
 
@@ -420,8 +588,10 @@ def dashboard():
 @bp.get("/api/painel-agenda")
 @login_required
 def schedule_panel():
-    """Retorna os horários livres para serviço + profissional."""
-    active_appointment = get_active_user_appointment(current_user.id)
+    """Retorna os horários permitidos para o usuário atual."""
+    active_appointment = get_active_user_appointment(
+        current_user.id
+    )
 
     if active_appointment:
         return jsonify(
@@ -430,60 +600,138 @@ def schedule_panel():
                 "error": "Você já possui um agendamento ativo.",
                 "active_appointment": {
                     "id": active_appointment.id,
-                    "date": active_appointment.start_at.strftime("%d/%m/%Y"),
-                    "start": active_appointment.start_at.strftime("%H:%M"),
-                    "end": active_appointment.end_at.strftime("%H:%M"),
+                    "date": active_appointment.start_at.strftime(
+                        "%d/%m/%Y"
+                    ),
+                    "start": active_appointment.start_at.strftime(
+                        "%H:%M"
+                    ),
+                    "end": active_appointment.end_at.strftime(
+                        "%H:%M"
+                    ),
                 },
             }
         ), 409
 
-    service_id = request.args.get("service_id", type=int)
-    professional_id = request.args.get("professional_id", type=int)
+    service_id = request.args.get(
+        "service_id",
+        type=int,
+    )
+    professional_id = request.args.get(
+        "professional_id",
+        type=int,
+    )
 
     if not service_id:
-        return jsonify({"ok": False, "error": "Selecione um serviço."}), 400
+        return jsonify(
+            {
+                "ok": False,
+                "error": "Selecione um serviço.",
+            }
+        ), 400
 
     if not professional_id:
-        return jsonify({"ok": False, "error": "Selecione um profissional."}), 400
+        return jsonify(
+            {
+                "ok": False,
+                "error": "Selecione um profissional.",
+            }
+        ), 400
 
-    service = db.session.get(Service, service_id)
-    professional = get_selectable_professional(professional_id)
+    service = db.session.get(
+        Service,
+        service_id,
+    )
+    professional = get_selectable_professional(
+        professional_id
+    )
 
     if not service or not service.active:
-        return jsonify({"ok": False, "error": "Serviço indisponível."}), 404
+        return jsonify(
+            {
+                "ok": False,
+                "error": "Serviço indisponível.",
+            }
+        ), 404
 
     if not professional:
-        return jsonify({"ok": False, "error": "Profissional indisponível."}), 404
+        return jsonify(
+            {
+                "ok": False,
+                "error": "Profissional indisponível.",
+            }
+        ), 404
 
     now = local_now()
-    week_start, week_end = active_week_range(now.date())
+    allowed_dates = booking_dates_for_user(
+        now=now,
+        user=current_user,
+    )
 
     days = []
-    cursor_date = week_start
 
-    while cursor_date <= week_end:
+    for selected_date in allowed_dates:
         days.append(
             {
-                "date": cursor_date.isoformat(),
-                "weekday": WEEKDAY_LABELS[cursor_date.weekday()],
-                "label": cursor_date.strftime("%d/%m"),
-                "full_label": cursor_date.strftime("%d/%m/%Y"),
+                "date": selected_date.isoformat(),
+                "weekday": WEEKDAY_LABELS[
+                    selected_date.weekday()
+                ],
+                "label": selected_date.strftime(
+                    "%d/%m"
+                ),
+                "full_label": selected_date.strftime(
+                    "%d/%m/%Y"
+                ),
                 "slots": build_available_times(
                     service,
                     professional,
-                    cursor_date,
+                    selected_date,
                 ),
             }
         )
-        cursor_date += timedelta(days=1)
+
+    is_vip = user_has_vip_access(
+        current_user
+    )
+
+    if is_vip:
+        week_start, week_end = active_week_range(
+            now.date()
+        )
+    else:
+        week_start = now.date()
+        week_end = now.date()
 
     return jsonify(
         {
             "ok": True,
             "days": days,
+            "message": booking_access_message(
+                now=now,
+                user=current_user,
+            ),
+            "access": {
+                "is_vip": is_vip,
+                "type": (
+                    "vip_week"
+                    if is_vip
+                    else "standard_same_day"
+                ),
+                "standard_release_time": (
+                    STANDARD_RELEASE_TIME.strftime(
+                        "%H:%M"
+                    )
+                ),
+                "vip_days": 6,
+            },
             "week": {
-                "start": week_start.strftime("%d/%m/%Y"),
-                "end": week_end.strftime("%d/%m/%Y"),
+                "start": week_start.strftime(
+                    "%d/%m/%Y"
+                ),
+                "end": week_end.strftime(
+                    "%d/%m/%Y"
+                ),
             },
             "service": {
                 "id": service.id,
@@ -497,13 +745,20 @@ def schedule_panel():
                 "bio": professional.bio or "",
             },
             "business_hours": {
-                "open": OPEN_TIME.strftime("%H:%M"),
-                "close": CLOSE_TIME.strftime("%H:%M"),
+                "open": OPEN_TIME.strftime(
+                    "%H:%M"
+                ),
+                "last_start": LAST_START_TIME.strftime(
+                    "%H:%M"
+                ),
             },
             "rules": {
                 "single_active_booking": True,
                 "professional_selection": True,
                 "slot_step_minutes": SLOT_STEP_MINUTES,
+                "vip_week_access": True,
+                "standard_same_day_only": True,
+                "standard_release_at": "05:00",
             },
         }
     )

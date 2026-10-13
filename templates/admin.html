@@ -16,16 +16,8 @@
 
             <div class="flex flex-wrap items-center gap-2">
 
-                <span class="text-xs font-black tracking-[.18em] text-barber-300">
-                    PAINEL ADMINISTRATIVO
-                </span>
-
-                <span
-                    class="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-[11px] font-black uppercase tracking-wider text-emerald-300"
-                >
-                    Sistema online
-                </span>
-
+               
+               
             </div>
 
 
@@ -42,32 +34,6 @@
         </div>
 
 
-        <div class="flex flex-wrap gap-2">
-
-            <a
-                href="{{ url_for('booking.agenda') }}"
-                class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-bold transition hover:bg-white/10"
-            >
-                Ver agenda
-            </a>
-
-
-            <a
-                href="{{ url_for('admin_stats.statistics') }}"
-                class="rounded-2xl border border-[#f4600d]/20 bg-[#f4600d]/5 px-4 py-3 text-sm font-black text-[#f58b46] transition hover:bg-[#f4600d]/10"
-            >
-                Estatísticas
-            </a>
-
-
-            <a
-                href="#whatsapp"
-                class="rounded-2xl bg-barber-400 px-4 py-3 text-sm font-black text-zinc-950 transition hover:bg-barber-300"
-            >
-                WhatsApp
-            </a>
-
-        </div>
 
     </div>
 
@@ -82,7 +48,7 @@
 
         <a
             href="{{ url_for('admin_stats.statistics') }}"
-            class="shrink-0 rounded-xl border border-[#f4600d]/20 bg-[#f4600d]/5 px-3 py-2 font-black text-[#f58b46] transition hover:bg-[#f4600d]/10"
+            class="shrink-0 rounded-xl border border-white/10 bg-white/[.03] px-3 py-2 hover:bg-white/10 hover:text-white"
         >
             Estatísticas
         </a>
@@ -96,7 +62,7 @@
 
         <a
             href="#profissionais"
-            class="shrink-0 rounded-xl border border-sky-400/15 bg-sky-400/5 px-3 py-2 font-black text-sky-300 hover:bg-sky-400/10"
+            class="shrink-0 rounded-xl border border-white/10 bg-white/[.03] px-3 py-2 hover:bg-white/10 hover:text-white"
         >
             Profissionais
         </a>
@@ -105,18 +71,12 @@
 
         <a
             href="#clientes-vip"
-            class="shrink-0 rounded-xl border border-amber-400/20 bg-amber-400/5 px-3 py-2 font-black text-amber-300 hover:bg-amber-400/10"
-        >
-            ★ Clientes VIP
-        </a>
-
-        <a
-            href="#whatsapp"
             class="shrink-0 rounded-xl border border-white/10 bg-white/[.03] px-3 py-2 hover:bg-white/10 hover:text-white"
         >
-            WhatsApp
+             Clientes VIP
         </a>
 
+       
         <a
             href="#movimentacao"
             class="shrink-0 rounded-xl border border-white/10 bg-white/[.03] px-3 py-2 hover:bg-white/10 hover:text-white"
@@ -211,16 +171,13 @@
     >
 
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="duration_minutes" value="30">
 
         <div class="flex items-center gap-3">
-            <span class="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-400/10 text-sm font-black text-emerald-300">
-                R$
-            </span>
+           
 
             <div>
-                <span class="text-xs font-black tracking-[.15em] text-zinc-500">
-                    CATÁLOGO
-                </span>
+                
                 <h2 class="text-2xl font-black">Novo serviço</h2>
             </div>
         </div>
@@ -230,36 +187,15 @@
             <input
                 name="name"
                 required
-                placeholder="Ex.: Corte degradê"
+                placeholder="Ex.: Corte "
                 class="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3.5 text-white outline-none focus:border-barber-400/60 focus:ring-4 focus:ring-barber-400/10"
             >
         </label>
 
-        <label class="mt-4 block">
-            <span class="mb-2 block text-sm font-bold text-zinc-300">Descrição</span>
-            <input
-                name="description"
-                maxlength="300"
-                placeholder="Descrição do serviço"
-                class="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3.5 text-white outline-none focus:border-barber-400/60 focus:ring-4 focus:ring-barber-400/10"
-            >
-        </label>
+       
 
         <div class="mt-4 grid gap-4 sm:grid-cols-2">
-            <label>
-                <span class="mb-2 block text-sm font-bold text-zinc-300">Duração</span>
-                <input
-                    type="number"
-                    name="duration_minutes"
-                    min="10"
-                    max="240"
-                    step="5"
-                    value="30"
-                    required
-                    class="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3.5 text-white outline-none"
-                >
-            </label>
-
+          
             <label>
                 <span class="mb-2 block text-sm font-bold text-zinc-300">Preço</span>
                 <input
@@ -267,7 +203,7 @@
                     name="price"
                     min="0"
                     step="0.01"
-                    value="35.00"
+                    value="30"
                     required
                     class="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3.5 text-white outline-none"
                 >
@@ -276,7 +212,7 @@
 
         <button
             type="submit"
-            class="mt-5 w-full rounded-2xl bg-barber-400 px-5 py-3.5 font-black text-zinc-950 hover:bg-barber-300"
+            class="mt-5 flex w-full items-center justify-center rounded-2xl bg-[#f4600d] px-5 py-3.5 font-black text-black transition hover:bg-[#ff7a2f]"
         >
             Adicionar serviço
         </button>
@@ -285,13 +221,10 @@
     <div class="rounded-[2rem] border border-white/10 bg-zinc-900/70 p-6 shadow-xl">
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
-                <span class="text-xs font-black tracking-[.15em] text-zinc-500">CADASTRADOS</span>
-                <h2 class="mt-1 text-2xl font-black">Serviços da barbearia</h2>
+                <span class="text-xs font-black tracking-[.15em] text-zinc-500">REGISTRO DE SERVIÇOS</span>
+           
             </div>
 
-            <span class="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-black text-zinc-400">
-                {{ services|length }} serviço{% if services|length != 1 %}s{% endif %}
-            </span>
         </div>
 
         <p class="mt-3 text-xs leading-5 text-zinc-600">
@@ -375,9 +308,7 @@
     >
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-        <span class="text-xs font-black tracking-[.15em] text-sky-300">
-            EQUIPE
-        </span>
+      
 
         <h2 class="mt-1 text-2xl font-black">
             Novo profissional
@@ -399,16 +330,7 @@
             >
         </label>
 
-        <label class="mt-4 block">
-            <span class="mb-2 block text-sm font-bold text-zinc-300">Descrição</span>
-            <textarea
-                name="bio"
-                maxlength="300"
-                rows="3"
-                placeholder="Ex.: Especialista em degradê e barba"
-                class="w-full resize-none rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3.5 text-white outline-none focus:border-sky-400/60 focus:ring-4 focus:ring-sky-400/10"
-            ></textarea>
-        </label>
+       
 
         <button
             type="submit"
@@ -418,19 +340,17 @@
         </button>
     </form>
 
-    <div class="rounded-[2rem] border border-white/10 bg-zinc-900/70 p-6 shadow-xl">
-        <div class="flex flex-wrap items-center justify-between gap-3">
+    <div class="rounded-[2rem] border border-sky-400/15 bg-zinc-900/70 p-6 shadow-xl">
+        <div class="flex flex-wrap items-center justify-between gap-3  ">
             <div>
-                <span class="text-xs font-black tracking-[.15em] text-zinc-500">CADASTRADOS</span>
-                <h2 class="mt-1 text-2xl font-black">Equipe da agenda</h2>
+                <span class="text-xs font-black tracking-[.15em] text-zinc-500  ">REGISTRO DOS PROFISSIONAIS</span>
+                
             </div>
-            <span class="rounded-full border border-emerald-400/15 bg-emerald-400/5 px-3 py-2 text-xs font-black text-emerald-300">
-                {{ stats.active_professionals }} ativo{% if stats.active_professionals != 1 %}s{% endif %}
-            </span>
+            
         </div>
 
         <p class="mt-3 text-xs leading-5 text-zinc-600">
-            Se o profissional já possuir agendamentos ou registros antigos, o botão Remover o retira da agenda sem apagar o histórico.
+           
         </p>
 
         <div class="mt-5 space-y-3">
@@ -487,89 +407,6 @@
 </section>
 
 
-<!-- ====================================================== -->
-<!-- AGENDA -->
-<!-- ====================================================== -->
-
-<section
-    id="agenda"
-    class="mb-6 overflow-hidden rounded-[2rem] border border-barber-400/20 bg-barber-400/5"
->
-
-    <div class="grid lg:grid-cols-[1fr_auto]">
-
-        <div class="p-6">
-
-            <span
-                class="text-xs font-black tracking-[.15em] text-barber-300"
-            >
-                AGENDA SEMANAL
-            </span>
-
-
-            <h2 class="mt-2 text-2xl font-black">
-                Segunda a sábado · 09:00 às 19:30
-            </h2>
-
-
-            <p class="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">
-
-                Apenas a semana vigente fica disponível.
-
-                De segunda a sábado é mostrada a semana atual.
-
-                No domingo o sistema abre automaticamente a próxima semana.
-
-            </p>
-
-
-            <div class="mt-5 flex flex-wrap gap-2">
-
-                <span class="rounded-xl border border-white/10 bg-zinc-950/40 px-3 py-2 text-xs font-bold">
-                    30 min por intervalo
-                </span>
-
-                <span class="rounded-xl border border-white/10 bg-zinc-950/40 px-3 py-2 text-xs font-bold">
-                    Domingo fechado
-                </span>
-
-                <span class="rounded-xl border border-white/10 bg-zinc-950/40 px-3 py-2 text-xs font-bold">
-                    1 agendamento ativo por cliente
-                </span>
-
-                <span class="rounded-xl border border-sky-400/10 bg-sky-400/5 px-3 py-2 text-xs font-bold text-sky-300">
-                    Agenda separada por profissional
-                </span>
-
-            </div>
-
-        </div>
-
-
-        <div
-            class="grid min-w-48 place-items-center border-t border-white/10 p-6 lg:border-l lg:border-t-0"
-        >
-
-            <div class="text-center">
-
-                <span class="text-xs text-zinc-600">
-                    EXPEDIENTE
-                </span>
-
-                <strong
-                    class="mt-2 block text-3xl font-black text-barber-300"
-                >
-                    09–19h30
-                </strong>
-
-            </div>
-
-        </div>
-
-    </div>
-
-</section>
-
 
 <!-- ====================================================== -->
 <!-- CLIENTES VIP -->
@@ -584,12 +421,10 @@
 
         <div>
             <span class="text-xs font-black tracking-[.15em] text-amber-300">
-                ★ PROGRAMA VIP
+                ★ CLIENTES VIPS
             </span>
 
-            <h2 class="mt-1 text-2xl font-black">
-                Clientes VIP
-            </h2>
+            
 
             <p class="mt-2 max-w-2xl text-sm leading-6 text-zinc-500">
                 Pesquise um cliente pelo nome ou e-mail e marque a conta como VIP.
@@ -597,9 +432,6 @@
             </p>
         </div>
 
-        <span class="w-fit rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs font-black text-amber-300">
-            {{ stats.vip_clients }} VIP{% if stats.vip_clients != 1 %}s{% endif %}
-        </span>
 
     </div>
 
@@ -809,197 +641,6 @@
 
 </section>
 
-
-<!-- ====================================================== -->
-<!-- WHATSAPP -->
-<!-- ====================================================== -->
-
-<section
-    id="whatsapp"
-    class="mb-6 rounded-[2rem] border border-emerald-400/20 bg-zinc-900/70 p-6"
->
-
-    {% set wa_token = config.get('WHATSAPP_ACCESS_TOKEN') %}
-
-    {% set wa_phone = config.get('WHATSAPP_PHONE_NUMBER_ID') %}
-
-    {% set wa_version = config.get('WHATSAPP_API_VERSION') %}
-
-    {% set wa_confirm = config.get('WHATSAPP_CONFIRMATION_TEMPLATE') %}
-
-    {% set wa_reminder = config.get('WHATSAPP_REMINDER_TEMPLATE') %}
-
-
-    {% set whatsapp_ready =
-        wa_token
-        and wa_phone
-        and wa_version
-        and wa_confirm
-        and wa_reminder
-    %}
-
-
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-
-        <div>
-
-            <span
-                class="text-xs font-black tracking-[.15em] text-emerald-300"
-            >
-                WHATSAPP CLOUD API
-            </span>
-
-
-            <h2 class="mt-1 text-2xl font-black">
-                Notificações automáticas
-            </h2>
-
-
-            <p class="mt-2 max-w-2xl text-sm text-zinc-400">
-
-                Envie confirmação do agendamento e lembrete
-                próximo ao horário do cliente.
-
-            </p>
-
-        </div>
-
-
-        {% if whatsapp_ready %}
-
-            <span
-                class="rounded-full bg-emerald-400/10 px-3 py-2 text-xs font-black text-emerald-300"
-            >
-                ✓ API configurada
-            </span>
-
-        {% else %}
-
-            <span
-                class="rounded-full bg-amber-400/10 px-3 py-2 text-xs font-black text-amber-300"
-            >
-                ⚠ Configuração incompleta
-            </span>
-
-        {% endif %}
-
-    </div>
-
-
-    <div class="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-
-        {% set items = [
-            ('Token', wa_token),
-            ('Phone Number ID', wa_phone),
-            ('API', wa_version),
-            ('Confirmação', wa_confirm),
-            ('Lembrete', wa_reminder)
-        ] %}
-
-
-        {% for label, value in items %}
-
-            <div
-                class="rounded-2xl border border-white/10 bg-zinc-950/40 p-4"
-            >
-
-                <span class="text-xs font-bold text-zinc-500">
-                    {{ label }}
-                </span>
-
-
-                {% if value %}
-
-                    <strong
-                        class="mt-2 block text-xs text-emerald-300"
-                    >
-                        ✓ Configurado
-                    </strong>
-
-                {% else %}
-
-                    <strong
-                        class="mt-2 block text-xs text-amber-300"
-                    >
-                        ! Pendente
-                    </strong>
-
-                {% endif %}
-
-            </div>
-
-        {% endfor %}
-
-    </div>
-
-
-    <div class="mt-6 flex flex-wrap gap-3">
-
-        <a
-            href="/whatsapp/configuracao"
-            class="rounded-2xl bg-emerald-400 px-4 py-3 text-sm font-black text-emerald-950 hover:bg-emerald-300"
-        >
-            Configuração WhatsApp
-        </a>
-
-
-        <a
-            href="https://developers.facebook.com/apps/"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-bold hover:bg-white/10"
-        >
-            Meta for Developers ↗
-        </a>
-
-    </div>
-
-    <form
-        method="post"
-        action="{{ url_for('admin.test_whatsapp') }}"
-        class="mt-5 grid gap-3 rounded-2xl border border-white/10 bg-zinc-950/35 p-4 sm:grid-cols-[1fr_auto]"
-    >
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <label>
-            <span class="mb-2 block text-xs font-black uppercase tracking-wider text-zinc-500">Número para teste</span>
-            <input
-                type="tel"
-                name="test_phone"
-                required
-                placeholder="81999999999"
-                class="w-full rounded-xl border border-white/10 bg-zinc-950/70 px-4 py-3 text-white outline-none focus:border-emerald-400/50"
-            >
-        </label>
-        <button
-            type="submit"
-            class="self-end rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 font-black text-emerald-300 hover:bg-emerald-400/15"
-        >
-            Testar WhatsApp
-        </button>
-    </form>
-
-
-    {% if not whatsapp_ready %}
-
-        <div
-            class="mt-5 rounded-2xl border border-amber-400/15 bg-amber-400/5 p-4 text-sm leading-6 text-zinc-400"
-        >
-
-            Complete no arquivo <strong>.env</strong>:
-
-            <br>
-
-            WHATSAPP_ACCESS_TOKEN<br>
-            WHATSAPP_PHONE_NUMBER_ID<br>
-            WHATSAPP_API_VERSION<br>
-            WHATSAPP_CONFIRMATION_TEMPLATE<br>
-            WHATSAPP_REMINDER_TEMPLATE
-
-        </div>
-
-    {% endif %}
-
-</section>
 
 
 <!-- ====================================================== -->

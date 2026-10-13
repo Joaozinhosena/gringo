@@ -24,7 +24,7 @@ bp = Blueprint("admin", __name__, url_prefix="/admin")
 
 BUSINESS_TZ = timezone(timedelta(hours=-3), name="America/Recife")
 OPEN_TIME = time(9, 0)
-CLOSE_TIME = time(19, 30)
+LAST_START_TIME = time(18, 0)
 SLOT_STEP_MINUTES = 30
 
 
@@ -103,9 +103,9 @@ def count_available_base_slots():
 
         while current_date <= week_end:
             cursor = datetime.combine(current_date, OPEN_TIME)
-            closing = datetime.combine(current_date, CLOSE_TIME)
+            last_start = datetime.combine(current_date, LAST_START_TIME)
 
-            while cursor + timedelta(minutes=SLOT_STEP_MINUTES) <= closing:
+            while cursor <= last_start:
                 end_at = cursor + timedelta(minutes=SLOT_STEP_MINUTES)
 
                 if cursor > now:

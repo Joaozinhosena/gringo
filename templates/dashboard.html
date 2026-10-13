@@ -114,10 +114,6 @@
 
             <div>
 
-                <span class="text-[11px] font-black uppercase tracking-[.16em] text-zinc-600">
-                    PRÓXIMOS
-                </span>
-
                 <h2 class="text-2xl font-black text-white">
                     Próximo atendimento
                 </h2>
@@ -190,7 +186,7 @@
                             </span>
 
                             <span class="inline-flex items-center gap-2 text-sky-300">
-                                <span>✂</span>
+                              
                                 {{ a.professional.name }}
                             </span>
 
@@ -238,9 +234,7 @@
 
             <div class="rounded-3xl border border-dashed border-white/10 bg-black/10 p-8 text-center">
 
-                <div class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#f4600d]/10 text-2xl text-[#f58b46]">
-                    ✂
-                </div>
+                
 
                 <strong class="mt-4 block text-base font-black text-zinc-300">
                     Nenhum horário agendado
@@ -278,12 +272,9 @@
 
         <div>
 
-            <span class="text-[11px] font-black uppercase tracking-[.16em] text-zinc-600">
-                HISTÓRICO
-            </span>
-
+         
             <h2 class="text-2xl font-black text-white">
-                Seus atendimentos
+                Histórico
             </h2>
 
         </div>
@@ -332,21 +323,21 @@
 
                             {% if a.status == "scheduled" %}
 
-                                <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/15 bg-emerald-400/5 px-2.5 py-1 text-xs font-black text-emerald-300">
+                                <span class="inline-flex items-center gap-1.5 rounded-full  border-emerald-400/15 bg-emerald-400/5 px-2.5 py-1 text-xs font-black text-emerald-300">
                                     <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
                                     Agendado
                                 </span>
 
                             {% elif a.status == "cancelled" %}
 
-                                <span class="inline-flex items-center gap-1.5 rounded-full border border-red-400/15 bg-red-400/5 px-2.5 py-1 text-xs font-black text-red-300">
+                                <span class="inline-flex items-center gap-1.5 rounded-full bg-red-400/5 px-2.5 py-1 text-xs font-black text-red-300">
                                     <span class="h-1.5 w-1.5 rounded-full bg-red-400"></span>
                                     Cancelado
                                 </span>
 
                             {% else %}
 
-                                <span class="inline-flex items-center gap-1.5 rounded-full border border-sky-400/15 bg-sky-400/5 px-2.5 py-1 text-xs font-black text-sky-300">
+                                <span class="inline-flex items-center gap-1.5 rounded-full  border-sky-400/15 bg-sky-400/5 px-2.5 py-1 text-xs font-black text-sky-300">
                                     <span class="h-1.5 w-1.5 rounded-full bg-sky-300"></span>
                                     Concluído
                                 </span>
@@ -401,7 +392,7 @@
                         </p>
 
                         <p class="mt-2 text-xs font-black text-sky-300">
-                            ✂ {{ a.professional.name }}
+                             {{ a.professional.name }}
                         </p>
 
                     </div>

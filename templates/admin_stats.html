@@ -124,25 +124,7 @@
 
 <section class="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
 
-    <article class="rounded-3xl border border-white/10 bg-zinc-900/70 p-5 shadow-xl">
-
-        <div class="flex items-center justify-between">
-            <span class="text-sm font-bold text-zinc-500">
-                Clientes que agendaram
-            </span>
-
-            
-        </div>
-
-        <strong class="mt-5 block text-4xl font-black text-white">
-            {{ s.unique_clients }}
-        </strong>
-
-        <span class="mt-1 block text-xs font-bold text-zinc-600">
-            {{ s.returning_clients }} cliente(s) retornaram
-        </span>
-
-    </article>
+  
 
 
     <article class="rounded-3xl border border-white/10 bg-zinc-900/70 p-5 shadow-xl">
@@ -222,19 +204,7 @@
 
 <section class="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
 
-    <article class="rounded-3xl border border-white/10 bg-zinc-900/60 p-5">
-        <span class="text-xs font-black uppercase tracking-wider text-zinc-600">
-            Ticket médio
-        </span>
-
-        <strong class="mt-3 block text-2xl font-black text-white">
-            {{ s.average_ticket_cents|money }}
-        </strong>
-
-        <span class="mt-1 block text-xs text-zinc-600">
-            por corte concluído
-        </span>
-    </article>
+    
 
 
     <article class="rounded-3xl border border-white/10 bg-zinc-900/60 p-5">
@@ -267,19 +237,8 @@
     </article>
 
 
-    <article class="rounded-3xl border border-sky-400/15 bg-sky-400/5 p-5">
-        <span class="text-xs font-black uppercase tracking-wider text-sky-300/70">
-            Receita futura
-        </span>
+   
 
-        <strong class="mt-3 block text-2xl font-black text-sky-200">
-            {{ s.projected_cents|money }}
-        </strong>
-
-        <span class="mt-1 block text-xs text-sky-100/40">
-            {{ s.future_scheduled }} agendamento(s) futuro(s)
-        </span>
-    </article>
 
 </section>
 
@@ -387,134 +346,13 @@
 </section>
 
 
-<!-- ====================================================== -->
-<!-- GRÁFICOS ESTATÍSTICOS -->
-<!-- ====================================================== -->
-
 <section class="mt-5 grid gap-5 xl:grid-cols-2">
 
     <!-- ================================================== -->
     <!-- CORTES / CANCELAMENTOS / AGENDADOS -->
     <!-- ================================================== -->
 
-    <article class="overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-900/70 p-5 shadow-xl sm:p-6">
-
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-
-            <div>
-                <span class="text-xs font-black uppercase tracking-[.15em] text-zinc-600">
-                    COMPARATIVO DIÁRIO
-                </span>
-
-                <h2 class="mt-1 text-xl font-black text-white">
-                    Movimento dos atendimentos
-                </h2>
-            </div>
-
-            <div class="flex flex-wrap gap-3 text-[10px] font-black uppercase tracking-wider">
-
-                <span class="flex items-center gap-1.5 text-emerald-300">
-                    <span class="h-2.5 w-2.5 rounded-sm bg-emerald-400"></span>
-                    Cortes
-                </span>
-
-                <span class="flex items-center gap-1.5 text-red-300">
-                    <span class="h-2.5 w-2.5 rounded-sm bg-red-400"></span>
-                    Cancelados
-                </span>
-
-                <span class="flex items-center gap-1.5 text-sky-300">
-                    <span class="h-2.5 w-2.5 rounded-sm bg-sky-300"></span>
-                    Agendados
-                </span>
-
-            </div>
-
-        </div>
-
-
-        {% if s.chart_daily_rows %}
-
-            <div class="mt-6 overflow-x-auto pb-3">
-
-                <div
-                    class="flex h-[300px] min-w-max items-end gap-3 border-b border-white/10 px-2 pt-8"
-                >
-
-                    {% for row in s.chart_daily_rows %}
-
-                        <div class="flex h-full w-[72px] shrink-0 flex-col justify-end">
-
-                            <div class="relative flex h-[235px] items-end justify-center gap-1">
-
-                                <!-- CONCLUÍDOS -->
-                                <div
-                                    class="group relative w-4 rounded-t-md bg-emerald-400 transition hover:brightness-110"
-                                    style="height: {{ row.completed_percent }}%; min-height: {% if row.completed > 0 %}4px{% else %}0{% endif %};"
-                                    title="{{ row.full_label }} — {{ row.completed }} corte(s)"
-                                >
-                                    {% if row.completed > 0 %}
-                                        <span class="absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] font-black text-emerald-300">
-                                            {{ row.completed }}
-                                        </span>
-                                    {% endif %}
-                                </div>
-
-                                <!-- CANCELADOS -->
-                                <div
-                                    class="group relative w-4 rounded-t-md bg-red-400 transition hover:brightness-110"
-                                    style="height: {{ row.cancelled_percent }}%; min-height: {% if row.cancelled > 0 %}4px{% else %}0{% endif %};"
-                                    title="{{ row.full_label }} — {{ row.cancelled }} cancelado(s)"
-                                >
-                                    {% if row.cancelled > 0 %}
-                                        <span class="absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] font-black text-red-300">
-                                            {{ row.cancelled }}
-                                        </span>
-                                    {% endif %}
-                                </div>
-
-                                <!-- AINDA AGENDADOS -->
-                                <div
-                                    class="group relative w-4 rounded-t-md bg-sky-300 transition hover:brightness-110"
-                                    style="height: {{ row.scheduled_percent }}%; min-height: {% if row.scheduled > 0 %}4px{% else %}0{% endif %};"
-                                    title="{{ row.full_label }} — {{ row.scheduled }} agendado(s)"
-                                >
-                                    {% if row.scheduled > 0 %}
-                                        <span class="absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] font-black text-sky-300">
-                                            {{ row.scheduled }}
-                                        </span>
-                                    {% endif %}
-                                </div>
-
-                            </div>
-
-                            <div class="mt-3 text-center">
-                                <strong class="block text-[10px] font-black text-zinc-400">
-                                    {{ row.label }}
-                                </strong>
-
-                                <span class="mt-0.5 block text-[9px] font-bold text-zinc-700">
-                                    {{ row.weekday_short }}
-                                </span>
-                            </div>
-
-                        </div>
-
-                    {% endfor %}
-
-                </div>
-
-            </div>
-
-        {% else %}
-
-            <div class="mt-6 rounded-2xl border border-dashed border-white/10 p-8 text-center text-sm font-bold text-zinc-600">
-                Ainda não existem agendamentos no período selecionado.
-            </div>
-
-        {% endif %}
-
-    </article>
+   
 
 
     <!-- ================================================== -->
@@ -704,71 +542,6 @@
 
 </section>
 
-
-<!-- ====================================================== -->
-<!-- RESUMO FINANCEIRO FINAL -->
-<!-- ====================================================== -->
-
-<section class="mt-5 overflow-hidden rounded-[2rem] border border-[#f4600d]/20 bg-gradient-to-br from-[#f4600d]/10 via-zinc-900/70 to-[#3f6d87]/10 p-6 shadow-xl sm:p-8">
-
-    <div class="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
-
-        <div>
-
-            <span class="text-xs font-black uppercase tracking-[.16em] text-[#f58b46]">
-                SALDO FINAL DO PERÍODO
-            </span>
-
-            <h2 class="mt-2 text-3xl font-black tracking-tight text-white">
-                {{ s.revenue_cents|money }}
-            </h2>
-
-            <p class="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">
-                Faturamento bruto correspondente aos
-                <strong class="text-emerald-300">{{ s.completed }} cortes concluídos</strong>
-                dentro de {{ s.period_label|lower }}.
-            </p>
-
-        </div>
-
-
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
-
-            <div class="rounded-2xl border border-white/10 bg-black/15 p-4 text-center">
-                <span class="text-[10px] font-black uppercase tracking-wider text-zinc-600">
-                    Ticket médio
-                </span>
-
-                <strong class="mt-2 block text-lg font-black text-white">
-                    {{ s.average_ticket_cents|money }}
-                </strong>
-            </div>
-
-            <div class="rounded-2xl border border-white/10 bg-black/15 p-4 text-center">
-                <span class="text-[10px] font-black uppercase tracking-wider text-zinc-600">
-                    Cancelado
-                </span>
-
-                <strong class="mt-2 block text-lg font-black text-red-300">
-                    {{ s.cancelled_value_cents|money }}
-                </strong>
-            </div>
-
-            <div class="col-span-2 rounded-2xl border border-white/10 bg-black/15 p-4 text-center sm:col-span-1">
-                <span class="text-[10px] font-black uppercase tracking-wider text-zinc-600">
-                    Futuro
-                </span>
-
-                <strong class="mt-2 block text-lg font-black text-sky-300">
-                    {{ s.projected_cents|money }}
-                </strong>
-            </div>
-
-        </div>
-
-    </div>
-
-</section>
 
 
 <!-- ====================================================== -->

@@ -66,12 +66,22 @@
         const days = Array.isArray(data.days) ? data.days : [];
         const proName = data.professional?.name || "Profissional";
 
+        const accessText = data.access?.is_vip
+            ? "VIP · semana liberada"
+            : "Agenda de hoje";
+
         weekLabel.textContent = data.week
-            ? `${data.week.start} até ${data.week.end} · ${proName}`
-            : proName;
+            ? `${data.week.start} até ${data.week.end} · ${proName} · ${accessText}`
+            : `${proName} · ${accessText}`;
 
         if (!days.length) {
-            emptyState();
+            emptyState(
+                data.message
+                || "Nenhum horário disponível para esta combinação."
+            );
+            weekLabel.textContent =
+                data.message
+                || weekLabel.textContent;
             return;
         }
 
